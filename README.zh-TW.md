@@ -6,8 +6,8 @@ gac 是使用 Go 撰寫的 CLI，利用 AI CLI 將 Git 變更轉成 Conventional
 
 ## 功能
 
-- 指定檔案或目錄時，只使用 Git index 中已 staged 的變更。
-- 不指定 path 時，納入目前目錄下 tracked 的 staged 與 unstaged 變更，確認後採用等同 `git commit -a` 的行為。
+- 指定檔案時，只使用 Git index 中已 staged 的變更。
+- 不指定 path 時，納入 repository 中所有 tracked 的 staged 與 unstaged 變更，確認後採用等同 `git commit -a` 的行為。
 - 自動偵測 agy、codex、claude。
 - 可選擇 provider、model、語言與補充脈絡。
 - 支援互動式確認與 non-interactive 輸出。
@@ -41,15 +41,15 @@ gac
 
 檢查產生的訊息後輸入 y，建立 commit。
 
-沒有指定 path 時，分析目前工作目錄下 tracked 的 staged 與 unstaged 變更，確認後採用等同 `git commit -a` 的行為；指定 path 時，只處理符合該檔案或目錄的 staged 變更：
+沒有指定 path 時，分析 repository 中所有 tracked 的 staged 與 unstaged 變更，確認後採用等同 `git commit -a` 的行為；指定 path 時，只處理單一檔案的 staged 變更：
 
 ~~~sh
 gac
-gac src/
+gac src/main.go
 gac src/main.go
 ~~~
 
-指定 path 時，未 staged 的變更不會送給 AI。如果目標檔案同時有 staged 與未 staged 變更，gac 會停止，避免誤產生 partial commit。Untracked 檔案永遠不會納入。
+指定檔案時，未 staged 的變更不會送給 AI。如果檔案同時有 staged 與未 staged 變更，gac 會停止，避免誤產生 partial commit。Directory path 與多個 path 不支援，untracked 檔案永遠不會納入。
 
 ## 互動操作
 

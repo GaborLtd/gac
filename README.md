@@ -6,8 +6,8 @@ gac is a Go CLI that turns Git changes into a Conventional Commits message with 
 
 ## Features
 
-- With a file or directory path, uses only changes already staged in Git's index.
-- Without a path, includes tracked staged and unstaged changes in the current directory, with `git commit -a` semantics.
+- With a file path, uses only changes already staged in Git's index.
+- Without a path, includes all tracked staged and unstaged changes in the repository, with `git commit -a` semantics.
 - Detects agy, codex, and claude CLIs.
 - Supports provider, model, language, and additional context selection.
 - Supports interactive review and non-interactive output.
@@ -41,15 +41,15 @@ gac
 
 Review the generated message and enter y to create the commit.
 
-Without a path, gac analyzes tracked staged and unstaged changes under the current working directory. After confirmation, it uses `git commit -a` semantics. With a path, it uses only staged changes matching that file or directory:
+Without a path, gac analyzes all tracked staged and unstaged changes in the repository. After confirmation, it uses `git commit -a` semantics. With a file path, it uses only staged changes for that file:
 
 ~~~sh
 gac
-gac src/
+gac src/main.go
 gac src/main.go
 ~~~
 
-For a path-specific run, unstaged changes are never sent to the AI. If a target file has both staged and unstaged changes, gac stops to prevent an accidental partial commit. Untracked files are never included.
+For a file-specific run, unstaged changes are never sent to the AI. If the file has both staged and unstaged changes, gac stops to prevent an accidental partial commit. Directory paths and multiple paths are rejected. Untracked files are never included.
 
 ## Interactive controls
 

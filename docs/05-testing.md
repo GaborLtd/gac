@@ -4,7 +4,7 @@
 
 ## 核心測試
 
-- Git repository：無 path 時納入 tracked staged／unstaged 並排除 untracked，指定 path 時只納入 staged、指定檔案、指定目錄、目前工作目錄、partial staging 保護、空變更、非 repository；確認不執行獨立 add／`-A`。
+- Git repository：無 path 時納入 repository 中 tracked staged／unstaged 並排除 untracked，指定單一檔案時只納入 staged，directory path 與多 path 會被拒絕；partial staging 保護、空變更、非 repository；確認不執行獨立 add／`-A`。
 - Diff 限制：line／byte 上限、檔案標頭保留、截斷標記、UTF-8 與 binary 檔案。
 - Prompt：stat、diff、補充脈絡、語言與限制正確注入；不得意外混入未選範圍。
 - Non-interactive：stdout 只有 message、stderr 才有診斷，且不建立 commit，可安全 pipe。

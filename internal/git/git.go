@@ -175,10 +175,9 @@ func (repo Repo) Commit(ctx context.Context, message string, stagedNames []strin
 	return nil
 }
 
-// CommitAll 使用 git commit -a 的語意，只在指定 scope 內納入 tracked 變更。
-func (repo Repo) CommitAll(ctx context.Context, message string, scope []string) error {
-	args := []string{"commit", "-a", "-m", message, "--"}
-	args = append(args, scope...)
+// CommitAll 使用沒有 pathspec 的 git commit -a 語意，納入 repository 中的 tracked 變更。
+func (repo Repo) CommitAll(ctx context.Context, message string) error {
+	args := []string{"commit", "-a", "-m", message}
 	_, stderr, err := repo.Run.Run(ctx, repo.Root, "git", args, "")
 	if err != nil {
 		return fmt.Errorf("git commit -a failed: %s", strings.TrimSpace(stderr))

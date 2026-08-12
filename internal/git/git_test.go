@@ -94,7 +94,7 @@ func TestCommitAllIncludesTrackedChangesAndExcludesUntracked(t *testing.T) {
 	if strings.Contains(names, "untracked.txt") {
 		t.Fatalf("untracked file appeared in changed names: %q", names)
 	}
-	if err := repo.CommitAll(context.Background(), "feat: update tracked files", scope); err != nil {
+	if err := repo.CommitAll(context.Background(), "feat: update tracked files"); err != nil {
 		t.Fatal(err)
 	}
 	changed := runGit(t, root, "show", "--format=", "--name-only", "HEAD")

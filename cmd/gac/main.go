@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -98,11 +99,30 @@ func (app *application) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	scope, err := repo.Scope(fs.Args())
+	paths := fs.Args()
+	if len(paths) > 1 {
+		return errors.New("only one file path may be provided")
+	}
+	scope, err := repo.Scope(paths)
 	if err != nil {
 		return err
 	}
-	allTracked := len(fs.Args()) == 0
+	allTracked := len(paths) == 0
+	if allTracked {
+		scope = []string{"."}
+	} else {
+		filePath := paths[0]
+		if !filepath.IsAbs(filePath) {
+			filePath = filepath.Join(cwd, filePath)
+		}
+		info, statErr := os.Stat(filePath)
+		if statErr == nil && info.IsDir() {
+			return errors.New("directory paths are not supported; provide a file path")
+		}
+		if statErr != nil && !os.IsNotExist(statErr) {
+			return fmt.Errorf("unable to inspect file path: %w", statErr)
+		}
+	}
 	var stat, diffText, namesText string
 	if allTracked {
 		stat, err = repo.WorktreeStat(ctx, scope)
@@ -159,7 +179,7 @@ func (app *application) run(args []string) error {
 		}
 	}
 	if onboarding {
-		fmt.Fprint(app.out, "Language [en]：")
+		fmt.Fprint(app.out, "Language [en]: ")
 		selectedLanguage, readErr := app.readLine()
 		if readErr != nil {
 			return readErr
@@ -201,7 +221,7 @@ func (app *application) run(args []string) error {
 	}
 	commitCtx, commitCancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer commitCancel()
-	return app.interactiveCommit(msg, generate, repo, commitNames, scope, allTracked, commitCtx)
+	return app.interactiveCommit(msg, generate, repo, commitNames, allTracked, commitCtx)
 }
 
 func (app *application) selectProvider(ctx context.Context, requested string, nonInteractive bool) (provider.Provider, error) {
@@ -243,7 +263,7 @@ func (app *application) selectProvider(ctx context.Context, requested string, no
 	return available[index-1], nil
 }
 
-func (app *application) interactiveCommit(msg string, generate func(string) (string, error), repo git.Repo, commitNames, scope []string, allTracked bool, ctx context.Context) error {
+func (app *application) interactiveCommit(msg string, generate func(string) (string, error), repo git.Repo, commitNames []string, allTracked bool, ctx context.Context) error {
 	extra := ""
 	for {
 		fmt.Fprintf(app.out, "\n📝 Suggested message:\n%s\n", msg)
@@ -256,7 +276,7 @@ func (app *application) interactiveCommit(msg string, generate func(string) (str
 		switch strings.ToLower(choice) {
 		case "y", "yes":
 			if allTracked {
-				if err := repo.CommitAll(ctx, msg, scope); err != nil {
+				if err := repo.CommitAll(ctx, msg); err != nil {
 					return err
 				}
 			} else if err := repo.Commit(ctx, msg, commitNames); err != nil {

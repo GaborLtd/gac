@@ -93,6 +93,47 @@ func TestChooseModelShowsDocsWhenProviderCannotList(t *testing.T) {
 	}
 }
 
+func TestRunRejectsDirectoryPath(t *testing.T) {
+	root := t.TempDir()
+	run(t, root, "init", "-q")
+	if err := os.Mkdir(filepath.Join(root, "docs"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(oldWD)
+
+	app := application{in: strings.NewReader(""), out: &bytes.Buffer{}, err: &bytes.Buffer{}}
+	err = app.run([]string{"--config", filepath.Join(t.TempDir(), "config.yaml"), "docs"})
+	if err == nil || !strings.Contains(err.Error(), "directory paths are not supported") {
+		t.Fatalf("expected directory path error, got %v", err)
+	}
+}
+
+func TestRunRejectsMultiplePaths(t *testing.T) {
+	root := t.TempDir()
+	run(t, root, "init", "-q")
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(oldWD)
+
+	app := application{in: strings.NewReader(""), out: &bytes.Buffer{}, err: &bytes.Buffer{}}
+	err = app.run([]string{"--config", filepath.Join(t.TempDir(), "config.yaml"), "a.txt", "b.txt"})
+	if err == nil || !strings.Contains(err.Error(), "only one file path may be provided") {
+		t.Fatalf("expected multiple path error, got %v", err)
+	}
+}
+
 type fakeModelProvider struct {
 	models  []string
 	docs    string

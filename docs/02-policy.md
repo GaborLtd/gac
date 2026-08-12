@@ -2,9 +2,9 @@
 
 ## Git policy
 
-- `gac` 永遠不執行獨立的 `git add` 或 `git add -A`。無 path 時，分析目前工作目錄下 tracked 的 staged 與 unstaged 變更，確認後使用 `git commit -a` 語意；untracked 檔案不會被納入。
-- 有指定 path 時，只分析並 commit 該 pathspec 對應的 staged diff；使用 `git commit --only`，不納入同一檔案的 unstaged 內容。
-- 無 path 時使用目前工作目錄 `.` 作為範圍，不擴大到 repository 其他目錄；有 path 時檔案與目錄都只作為 Git pathspec。
+- `gac` 永遠不執行獨立的 `git add` 或 `git add -A`。無 path 時，分析 repository 中 tracked 的 staged 與 unstaged 變更，確認後使用無 path 的 `git commit -a` 語意；untracked 檔案不會被納入。
+- 有指定 path 時，只接受單一檔案，分析並 commit 該檔案對應的 staged diff；使用 `git commit --only`，不納入同一檔案的 unstaged 內容。
+- directory path、不存在的 directory path 與多個 path 都不支援，直接回報錯誤。
 - 指定 path 若同時有 staged 與 unstaged 變更，必須停止並要求使用者先整理，避免產生 partial commit。
 - 無 path 時 staged 為空仍可分析 tracked 的 unstaged 變更；完全沒有 tracked 變更才回報沒有可 commit 的變更。
 - commit 前顯示最終 message 與 commit 範圍。只有明確 `y/yes` 才執行 commit；`e/edit` 進入編輯；其他輸入取消。

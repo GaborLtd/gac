@@ -2,10 +2,10 @@
 
 ## 主要流程
 
-`gac [path...]`：
+`gac` 或 `gac <file>`：
 
 1. 確認目前位於 Git repository；取得 branch、status 與變更 stat。
-2. 解析 pathspec：有 path 就使用指定檔案／目錄；無 path 就使用目前工作目錄 `.`。不執行任何 add。
+2. 解析 scope：無 path 使用整個 repository；有 path 時只接受單一檔案。不執行任何獨立 add。
 3. 無 path 時讀取範圍內 tracked 的 `HEAD..worktree` diff；有 path 時讀取 staged diff。沒有內容就結束並回報沒有可 commit 的變更。
 4. 依 bytes 與 lines 的雙重限制擷取 diff，先達到的限制生效；保留檔案標頭與 stat，並在 prompt 標示截斷。
 5. 取得 provider/model 設定；首次使用進入 onboarding，之後可用 `config` 指令修改。
@@ -16,15 +16,16 @@
 
 ## Commit scope 語意
 
-無 path 時，目標是目前工作目錄 `.` 下 tracked 的 staged 與 unstaged 內容，commit 行為等同 `git commit -a`；untracked 檔案不會被納入。這個流程不執行獨立的 `git add`。有 path 時，目標是指定檔案／目錄下已 staged 的內容，並保護 partial staging。`--non-interactive` 則只把產生的 message 寫到 stdout，診斷訊息寫到 stderr，不建立 commit，方便使用者自行 pipe 到 `pbcopy`、檔案或其他指令。
+無 path 時，目標是整個 repository 中 tracked 的 staged 與 unstaged 內容，commit 行為等同無 path 的 `git commit -a`；untracked 檔案不會被納入。這個流程不執行獨立的 `git add`。有 path 時，只接受單一檔案，目標是該檔案已 staged 的內容，並保護 partial staging。`--non-interactive` 則只把產生的 message 寫到 stdout，診斷訊息寫到 stderr，不建立 commit，方便使用者自行 pipe 到 `pbcopy`、檔案或其他指令。
 
 ## 暫定指令
 
-- `gac [path...]`：分析並互動式 commit。
+- `gac`：分析整個 repository，互動式執行 `git commit -a` 語意。
+- `gac <file>`：只分析並 commit 單一檔案的 staged 內容。
 - `gac config`：設定 provider、model、語言、diff 上限與 `[skip ci]` 預設。
 - `gac providers`：列出偵測結果、健康狀態與可用 model。
-- `gac -n, --non-interactive [path...]`：只輸出 message 到 stdout，不 commit；供 script pipe 或重用，缺必要設定時失敗。
-- `gac --skip-ci [path...]`：在既有 message 沒有等效 token 時加入 `[skip ci]`。
+- `gac -n, --non-interactive [file]`：只輸出 message 到 stdout，不 commit；供 script pipe 或重用，缺必要設定時失敗。
+- `gac --skip-ci [file]`：在既有 message 沒有等效 token 時加入 `[skip ci]`。
 
 ## 可設定項目
 
