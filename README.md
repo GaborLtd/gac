@@ -154,4 +154,3 @@ git tag -a v0.1.0 -m "release v0.1.0"
 git push origin v0.1.0
 ~~~
 
-The GitHub Actions release workflow builds the supported binaries, generates SHA256 checksums, and publishes a GitHub Release. See [CI/CD](docs/07-cicd.md) and [Release](docs/08-release.md) for maintainer details.
