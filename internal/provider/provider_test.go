@@ -28,15 +28,25 @@ func TestAgyInvocation(t *testing.T) {
 	}
 }
 
+func TestAgyInvocationNormalizesLegacyDisplayLabel(t *testing.T) {
+	r := &captureRunner{}
+	p := NewAgy(r)
+	if _, err := p.Generate(context.Background(), "gemini-3.6-flash-low\tGemini 3.6 Flash (Low)", "hello"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"--model", "Gemini 3.6 Flash (Low)", "--print", "hello"}
+	if !same(r.args, want) {
+		t.Fatalf("args %v, want %v", r.args, want)
+	}
+}
 func TestAgyListsModels(t *testing.T) {
 	r := &modelsRunner{}
 	models, err := NewAgy(r).ListModels(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"Gemini 3.5 Flash (Low)", "Gemini 3.5 Flash (Medium)"}
-	if !same(models, want) {
-		t.Fatalf("models %v, want %v", models, want)
+	if len(models) != 2 || models[0].ID != "gemini-3.5-flash-low" || models[0].DisplayName != "Gemini 3.5 Flash (Low)" || models[1].ID != "gemini-3.5-flash-medium" || models[1].DisplayName != "Gemini 3.5 Flash (Medium)" {
+		t.Fatalf("unexpected models: %v", models)
 	}
 	if !same(r.args, []string{"models"}) {
 		t.Fatalf("args %v", r.args)
@@ -98,7 +108,7 @@ type modelsRunner struct {
 func (r *modelsRunner) Run(_ context.Context, _ string, args []string) (string, string, error) {
 	r.args = args
 	if len(args) == 1 && args[0] == "models" {
-		return "Available models:\n* Gemini 3.5 Flash (Low)\n- Gemini 3.5 Flash (Medium)\n", "", nil
+		return "Available models:\ngemini-3.5-flash-low\tGemini 3.5 Flash (Low)\ngemini-3.5-flash-medium  Gemini 3.5 Flash (Medium)\n", "", nil
 	}
 	return "", "", nil
 }

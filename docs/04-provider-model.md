@@ -13,7 +13,7 @@ Go 內部以 `Provider` adapter 隔離外部工具，至少包含：`Name`、`De
 ## Model 選擇
 
 - 優先低成本、低延遲、能處理短 diff 的 model；成本只作為偏好，不宣稱精確價格。
-- provider 若能列 model，onboarding 顯示編號清單；使用者也可選擇手動輸入。
++ provider 若能列 model，onboarding 顯示編號清單；每個項目分為 model ID 與人類可讀的 display name，設定檔保存 provider 可接受的 model value（agy 使用 display name），使用者也可選擇手動輸入。
 - 第一版的 agy adapter 執行 agy models 並解析清單。
 - Codex 與 Claude CLI 沒有可靠的 account-specific model list；不能列出時顯示 adapter 提供的官方文件 URL。
 - model list 查詢失敗時提示登入：agy 建議啟動 agy，Codex 建議 codex login，Claude 建議啟動 claude 完成認證；gac 不自動登入、不接觸 token。

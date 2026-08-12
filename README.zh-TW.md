@@ -94,7 +94,7 @@ gac -n --provider agy --model low-cost-model
 gac providers
 ~~~
 
-執行 gac config 時，gac 會嘗試透過選定的 provider 列出 model。agy 會執行 agy models 並顯示結果；Codex 與 Claude 目前沒有可靠的 CLI 帳號可用 model 清單，因此 gac 會顯示 provider 文件 URL，使用者可以直接按 Enter 使用 provider 預設值，或自行輸入 model 名稱。
+執行 gac config 時，gac 會嘗試透過選定的 provider 列出 model。agy 會執行 agy models，將 model ID 與 display name 分開顯示，設定檔保存 provider 可接受的值（agy 使用 display name）；Codex 與 Claude 目前沒有可靠的 CLI 帳號可用 model 清單，因此 gac 會顯示 provider 文件 URL，使用者可以直接按 Enter 使用 provider 預設值，或自行輸入 model 名稱。
 
 如果 provider 需要登入，gac 會提示對應的登入指令。當 model 名稱含有 Low、Mini、Nano 或 Haiku 等成本線索時，gac 會將它們排在前面並標記為低成本建議。產生短 commit message 時，建議選擇足夠使用的最便宜 model；gac 不宣稱知道 provider 的精確價格。
 

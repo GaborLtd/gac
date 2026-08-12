@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gaborltd/gac/internal/provider"
 )
 
 func TestNonInteractiveOutputsOnlyMessageAndDoesNotCommit(t *testing.T) {
@@ -66,7 +68,7 @@ func TestNonInteractiveOutputsOnlyMessageAndDoesNotCommit(t *testing.T) {
 func TestChooseModelListsAndSelectsByNumber(t *testing.T) {
 	var out bytes.Buffer
 	app := application{in: strings.NewReader("1\n"), out: &out, err: &bytes.Buffer{}}
-	got, err := app.chooseModel(context.Background(), fakeModelProvider{models: []string{"strong", "cheap"}}, "")
+	got, err := app.chooseModel(context.Background(), fakeModelProvider{models: []provider.Model{{ID: "strong"}, {ID: "cheap"}}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,8 +136,35 @@ func TestRunRejectsMultiplePaths(t *testing.T) {
 	}
 }
 
+func TestChooseModelReturnsProviderValueWhenModelHasDisplayName(t *testing.T) {
+	var out bytes.Buffer
+	app := application{in: strings.NewReader("1\n"), out: &out, err: &bytes.Buffer{}}
+	got, err := app.chooseModel(context.Background(), fakeModelProvider{models: []provider.Model{{ID: "gemini-3.6-flash-low", DisplayName: "Gemini 3.6 Flash (Low)"}}}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Gemini 3.6 Flash (Low)" {
+		t.Fatalf("model = %q, want Gemini 3.6 Flash (Low)", got)
+	}
+	if !strings.Contains(out.String(), "gemini-3.6-flash-low — Gemini 3.6 Flash (Low)") {
+		t.Fatalf("display label missing: %q", out.String())
+	}
+}
+
+func TestChooseModelRepairsLegacyCurrentValueOnEnter(t *testing.T) {
+	app := application{in: strings.NewReader("\n"), out: &bytes.Buffer{}, err: &bytes.Buffer{}}
+	legacy := "gemini-3.6-flash-low\tGemini 3.6 Flash (Low)"
+	got, err := app.chooseModel(context.Background(), fakeModelProvider{models: []provider.Model{{ID: "gemini-3.6-flash-low", DisplayName: "Gemini 3.6 Flash (Low)"}}}, legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Gemini 3.6 Flash (Low)" {
+		t.Fatalf("model = %q, want Gemini 3.6 Flash (Low)", got)
+	}
+}
+
 type fakeModelProvider struct {
-	models  []string
+	models  []provider.Model
 	docs    string
 	login   string
 	listErr bool
@@ -145,7 +174,7 @@ func (p fakeModelProvider) Name() string      { return "fake" }
 func (p fakeModelProvider) Detect() error     { return nil }
 func (p fakeModelProvider) DocsURL() string   { return p.docs }
 func (p fakeModelProvider) LoginHint() string { return p.login }
-func (p fakeModelProvider) ListModels(context.Context) ([]string, error) {
+func (p fakeModelProvider) ListModels(context.Context) ([]provider.Model, error) {
 	if p.listErr {
 		return nil, errors.New("not supported")
 	}

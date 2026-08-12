@@ -14,6 +14,7 @@
 - config onboarding 會由 agy models 列出 model；Codex／Claude 無法可靠列出帳號 model 時顯示官方文件 URL，空白可使用 provider default。
 - model list 失敗時提供 provider-specific 登入提示；可辨識低成本名稱線索時優先排序並標記建議。
 - CLI user-facing text 統一使用英文；`language` 預設為 `en`，並由核心追加到固定 prompt contract，包括自訂 `prompt_template`。
+- agy model list 分離 model ID 與 display name，並使用 provider 可接受的值，避免把整行顯示文字保存後傳給 provider。
 - 無 path 時分析 repository 中 tracked 的 staged／unstaged 變更，確認後採用 `git commit -a` 語意；指定單一檔案時維持 staged-only 與 partial staging 保護。
 - 完成 CI workflow、GoReleaser release workflow、Makefile、文件檢查器與 binary 發布文件。
 - 建立文件索引，將目的、policy、功能、provider/model、測試策略分離。

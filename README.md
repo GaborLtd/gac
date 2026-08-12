@@ -94,7 +94,7 @@ List detected providers:
 gac providers
 ~~~
 
-During gac config, gac tries to list models through the selected provider. agy uses agy models and shows the returned choices. Codex and Claude do not currently expose a reliable account-specific model list through their CLIs, so gac shows the provider documentation URL and lets you press Enter to use the provider default or type a model name manually.
+During gac config, gac tries to list models through the selected provider. agy uses agy models and shows each model ID with its display name; it saves and passes the provider-compatible value (for agy, the display name). Codex and Claude do not currently expose a reliable account-specific model list through their CLIs, so gac shows the provider documentation URL and lets you press Enter to use the provider default or type a model name manually.
 
 If the provider needs authentication, gac suggests the provider login command. When model names contain cost hints such as Low, Mini, Nano, or Haiku, gac puts those choices first and marks them as low-cost recommendations. For a short commit message, choose the cheapest model that is sufficient; gac does not claim to know exact provider pricing.
 
@@ -153,4 +153,3 @@ Create and push a semantic version tag:
 git tag -a v0.1.0 -m "release v0.1.0"
 git push origin v0.1.0
 ~~~
-

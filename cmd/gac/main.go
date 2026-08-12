@@ -386,14 +386,18 @@ func (app *application) configure(args []string) error {
 
 func (app *application) chooseModel(ctx context.Context, p provider.Provider, current string) (string, error) {
 	models, listErr := p.ListModels(ctx)
+	currentValue := current
+	if listErr == nil {
+		currentValue = normalizeCurrentModel(current, models)
+	}
 	if listErr == nil && len(models) > 0 {
 		sort.SliceStable(models, func(i, j int) bool {
-			return modelCostRank(models[i]) < modelCostRank(models[j])
+			return modelCostRank(models[i].ID+" "+models[i].DisplayName) < modelCostRank(models[j].ID+" "+models[j].DisplayName)
 		})
 		fmt.Fprintln(app.out, "Recommendation: use the cheapest model that is sufficient for a commit message.")
 		fmt.Fprintln(app.out, "Available models:")
 		for i, model := range models {
-			fmt.Fprintf(app.out, "%d) %s%s\n", i+1, model, modelCostHint(model))
+			fmt.Fprintf(app.out, "%d) %s%s\n", i+1, model.Label(), modelCostHint(model.ID+" "+model.DisplayName))
 		}
 		fmt.Fprintln(app.out, "0) Enter a model name manually")
 	}
@@ -406,7 +410,7 @@ func (app *application) chooseModel(ctx context.Context, p provider.Provider, cu
 			fmt.Fprintf(app.out, "Model documentation: %s\n", p.DocsURL())
 		}
 	}
-	defaultLabel := current
+	defaultLabel := currentValue
 	if defaultLabel == "" {
 		defaultLabel = "provider default"
 	}
@@ -420,7 +424,7 @@ func (app *application) chooseModel(ctx context.Context, p provider.Provider, cu
 		return "", err
 	}
 	if choice == "" {
-		return current, nil
+		return currentValue, nil
 	}
 	if listErr == nil && len(models) > 0 {
 		var index int
@@ -430,12 +434,29 @@ func (app *application) chooseModel(ctx context.Context, p provider.Provider, cu
 				return app.readLine()
 			}
 			if index >= 1 && index <= len(models) {
-				return models[index-1], nil
+				return models[index-1].Value(), nil
 			}
 			return "", errors.New("invalid model number")
 		}
 	}
 	return choice, nil
+}
+
+func normalizeCurrentModel(current string, models []provider.Model) string {
+	current = strings.TrimSpace(current)
+	if current == "" {
+		return ""
+	}
+	for _, model := range models {
+		if current == model.ID || current == model.DisplayName {
+			return model.Value()
+		}
+		fields := strings.Fields(current)
+		if len(fields) > 0 && fields[0] == model.ID {
+			return model.Value()
+		}
+	}
+	return current
 }
 
 func modelCostRank(model string) int {

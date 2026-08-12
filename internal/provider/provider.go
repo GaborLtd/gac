@@ -28,10 +28,29 @@ func (osRunner) Run(ctx context.Context, name string, args []string) (string, st
 }
 
 // Provider 是 AI CLI adapter 的最小介面。
+type Model struct {
+	ID          string
+	DisplayName string
+}
+
+func (m Model) Label() string {
+	if m.DisplayName == "" || m.DisplayName == m.ID {
+		return m.ID
+	}
+	return m.ID + " — " + m.DisplayName
+}
+
+func (m Model) Value() string {
+	if m.DisplayName != "" {
+		return m.DisplayName
+	}
+	return m.ID
+}
+
 type Provider interface {
 	Name() string
 	Detect() error
-	ListModels(ctx context.Context) ([]string, error)
+	ListModels(ctx context.Context) ([]Model, error)
 	DocsURL() string
 	LoginHint() string
 	Generate(ctx context.Context, model, prompt string) (string, error)
@@ -51,7 +70,7 @@ func (p executable) Name() string      { return p.name }
 func (p executable) DocsURL() string   { return p.docsURL }
 func (p executable) LoginHint() string { return p.loginHint }
 
-func (p executable) ListModels(ctx context.Context) ([]string, error) {
+func (p executable) ListModels(ctx context.Context) ([]Model, error) {
 	if p.listArgs == nil {
 		return nil, fmt.Errorf("%s CLI has no reliable command for listing account-specific models", p.name)
 	}
@@ -102,6 +121,10 @@ func NewAgy(r Runner) Provider {
 	}, docsURL: "https://www.antigravity.google/docs/cli-using", loginHint: "run agy, complete browser sign-in, then retry", runner: r, args: func(model, prompt string) []string {
 		args := []string{}
 		if model != "" {
+			model = strings.TrimSpace(model)
+			if strings.Contains(model, "\t") || strings.Contains(model, "  ") {
+				model = parseModelLine(model).Value()
+			}
 			args = append(args, "--model", model)
 		}
 		return append(args, "--print", prompt)
@@ -126,8 +149,8 @@ func NewClaude(r Runner) Provider {
 	}}
 }
 
-func parseModelList(raw string) []string {
-	var models []string
+func parseModelList(raw string) []Model {
+	var models []Model
 	seen := make(map[string]bool)
 	for _, line := range strings.Split(raw, "\n") {
 		line = strings.TrimSpace(line)
@@ -136,12 +159,24 @@ func parseModelList(raw string) []string {
 		if line == "" || strings.EqualFold(line, "available models:") || strings.EqualFold(line, "models:") {
 			continue
 		}
-		if !seen[line] {
-			models = append(models, line)
-			seen[line] = true
+		model := parseModelLine(line)
+		if model.ID != "" && !seen[model.ID] {
+			models = append(models, model)
+			seen[model.ID] = true
 		}
 	}
 	return models
+}
+
+func parseModelLine(line string) Model {
+	if fields := strings.Fields(line); len(fields) > 1 && looksLikeModelID(fields[0]) {
+		return Model{ID: fields[0], DisplayName: strings.Join(fields[1:], " ")}
+	}
+	return Model{ID: line}
+}
+
+func looksLikeModelID(value string) bool {
+	return strings.ContainsAny(value, "-_: /") || strings.ContainsAny(value, "0123456789")
 }
 
 // DetectAll 回傳 PATH 中可用的第一批 provider。
