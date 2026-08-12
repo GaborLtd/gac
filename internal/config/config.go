@@ -114,7 +114,7 @@ func parseYAML(input string, cfg *Config) error {
 		}
 		key, value, ok := strings.Cut(line, ":")
 		if !ok {
-			return fmt.Errorf("無效 YAML 行：%q", line)
+			return fmt.Errorf("invalid YAML line: %q", line)
 		}
 		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
 		if value == "|" {
@@ -157,19 +157,19 @@ func setValue(cfg *Config, key, value string) error {
 	case "diff_max_bytes":
 		n, err := parseInt()
 		if err != nil {
-			return fmt.Errorf("diff_max_bytes 必須是整數")
+			return fmt.Errorf("diff_max_bytes must be an integer")
 		}
 		cfg.DiffMaxBytes = n
 	case "diff_max_lines":
 		n, err := parseInt()
 		if err != nil {
-			return fmt.Errorf("diff_max_lines 必須是整數")
+			return fmt.Errorf("diff_max_lines must be an integer")
 		}
 		cfg.DiffMaxLines = n
 	case "timeout_seconds":
 		n, err := parseInt()
 		if err != nil {
-			return fmt.Errorf("timeout_seconds 必須是整數")
+			return fmt.Errorf("timeout_seconds must be an integer")
 		}
 		cfg.TimeoutSeconds = n
 	case "skip_ci_mode":
@@ -177,7 +177,7 @@ func setValue(cfg *Config, key, value string) error {
 	case "prompt_template":
 		cfg.PromptTemplate = value
 	default:
-		return fmt.Errorf("不支援的 config 欄位：%s", key)
+		return fmt.Errorf("unsupported config field: %s", key)
 	}
 	return nil
 }

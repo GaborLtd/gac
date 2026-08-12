@@ -28,6 +28,32 @@ func TestAgyInvocation(t *testing.T) {
 	}
 }
 
+func TestAgyListsModels(t *testing.T) {
+	r := &modelsRunner{}
+	models, err := NewAgy(r).ListModels(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"Gemini 3.5 Flash (Low)", "Gemini 3.5 Flash (Medium)"}
+	if !same(models, want) {
+		t.Fatalf("models %v, want %v", models, want)
+	}
+	if !same(r.args, []string{"models"}) {
+		t.Fatalf("args %v", r.args)
+	}
+}
+
+func TestCodexAndClaudeExposeDocumentationWhenModelListingIsUnavailable(t *testing.T) {
+	for _, p := range []Provider{NewCodex(&captureRunner{}), NewClaude(&captureRunner{})} {
+		if _, err := p.ListModels(context.Background()); err == nil {
+			t.Fatalf("%s unexpectedly listed models", p.Name())
+		}
+		if p.DocsURL() == "" {
+			t.Fatalf("%s has no documentation URL", p.Name())
+		}
+	}
+}
+
 func TestCodexAndClaudeInvocation(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -63,4 +89,16 @@ func same(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+type modelsRunner struct {
+	args []string
+}
+
+func (r *modelsRunner) Run(_ context.Context, _ string, args []string) (string, string, error) {
+	r.args = args
+	if len(args) == 1 && args[0] == "models" {
+		return "Available models:\n* Gemini 3.5 Flash (Low)\n- Gemini 3.5 Flash (Medium)\n", "", nil
+	}
+	return "", "", nil
 }

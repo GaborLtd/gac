@@ -3,6 +3,7 @@ package prompt
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 )
 
@@ -40,5 +41,9 @@ func Build(in Input, custom string) (string, error) {
 	if err := tpl.Execute(&body, in); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s\n\nFixed output contract: return one Conventional Commits message only.", body.String()), nil
+	language := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(in.Language, "\r", " "), "\n", " "))
+	if language == "" {
+		language = "en"
+	}
+	return fmt.Sprintf("%s\n\nFixed output contract: return exactly one Conventional Commits message only. Write the message in %s. Do not include explanations or code fences.", body.String(), language), nil
 }

@@ -14,9 +14,9 @@ binary 名稱為 `gac`，代表 **Generate AI Commit message**。
 
 ## 第一版要做
 
-1. 只讀取已 staged 的 repository 內容；支援檔案與目錄 pathspec 篩選，不替使用者 `git add`。
-2. 未指定 path 時，只處理目前工作目錄下已 staged 的檔案。
-3. 產生統一 prompt，預設使用英文，並可選擇語言或自訂 prompt。
+1. 支援檔案與目錄 pathspec 篩選；指定 path 時只讀取 staged 內容，不替使用者 `git add`。
+2. 未指定 path 時，處理目前工作目錄下所有 tracked 的 staged 與 unstaged 變更，commit 語意等同 `git commit -a`，但不包含 untracked 檔案。
+3. 產生統一 prompt，預設使用英文，並可選擇語言或自訂 prompt；語言要求會固定追加到 prompt contract。
 4. 偵測 `agy`、`codex`、`claude`，讓 onboarding 與設定選擇 provider/model。
 5. 同時支援互動式流程與 `--non-interactive` message 輸出。
 6. 顯示建議、接受補充內容、編輯 message、選擇 `[skip ci]`，再由使用者確認 commit。

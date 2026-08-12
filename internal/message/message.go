@@ -24,10 +24,10 @@ func Clean(raw string) (string, error) {
 		}
 	}
 	if s == "" {
-		return "", fmt.Errorf("AI 回傳空白 message")
+		return "", fmt.Errorf("AI returned an empty message")
 	}
 	if !conventional.MatchString(strings.SplitN(s, "\n", 2)[0]) {
-		return "", fmt.Errorf("不是有效的 Conventional Commits message: %q", strings.SplitN(s, "\n", 2)[0])
+		return "", fmt.Errorf("invalid Conventional Commits message: %q", strings.SplitN(s, "\n", 2)[0])
 	}
 	return s, nil
 }

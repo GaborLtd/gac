@@ -1,18 +1,18 @@
 # gac — Generate AI Commit message
 
-gac is a Go CLI that turns staged Git changes into a Conventional Commits message with the help of an AI CLI.
+gac is a Go CLI that turns Git changes into a Conventional Commits message with the help of an AI CLI.
 
 [繁體中文](README.zh-TW.md)
 
 ## Features
 
-- Uses only changes already staged in Git's index.
-- Accepts a file or directory path to limit the scope.
+- With a file or directory path, uses only changes already staged in Git's index.
+- Without a path, includes tracked staged and unstaged changes in the current directory, with `git commit -a` semantics.
 - Detects agy, codex, and claude CLIs.
 - Supports provider, model, language, and additional context selection.
 - Supports interactive review and non-interactive output.
 - Supports [skip ci] and [ci skip] detection.
-- Never runs git add, git add -A, git commit -a, or git push.
+- Never runs a standalone git add or git add -A, and never includes untracked files.
 
 ## Installation
 
@@ -41,7 +41,7 @@ gac
 
 Review the generated message and enter y to create the commit.
 
-Without a path, gac uses staged changes under the current working directory. With a path, it uses only staged changes matching that file or directory:
+Without a path, gac analyzes tracked staged and unstaged changes under the current working directory. After confirmation, it uses `git commit -a` semantics. With a path, it uses only staged changes matching that file or directory:
 
 ~~~sh
 gac
@@ -49,7 +49,7 @@ gac src/
 gac src/main.go
 ~~~
 
-Unstaged changes are never sent to the AI. If a target file has both staged and unstaged changes, gac stops to prevent an accidental partial commit.
+For a path-specific run, unstaged changes are never sent to the AI. If a target file has both staged and unstaged changes, gac stops to prevent an accidental partial commit. Untracked files are never included.
 
 ## Interactive controls
 
@@ -59,7 +59,7 @@ Unstaged changes are never sent to the AI. If a target file has both staged and 
 - s / skip: append [skip ci] unless [skip ci] or [ci skip] already exists.
 - q / cancel: cancel without creating a commit.
 
-The default output language is English. Change it during onboarding or in the configuration.
+The CLI interface is always in English. The default AI output language is English. Change it during onboarding, with `--language`, or in the YAML configuration.
 
 ## Non-interactive mode
 
@@ -94,7 +94,9 @@ List detected providers:
 gac providers
 ~~~
 
-Choose a low-cost model suitable for short Git diffs. The model name is passed to the selected provider and is not hard-coded by gac.
+During gac config, gac tries to list models through the selected provider. agy uses agy models and shows the returned choices. Codex and Claude do not currently expose a reliable account-specific model list through their CLIs, so gac shows the provider documentation URL and lets you press Enter to use the provider default or type a model name manually.
+
+If the provider needs authentication, gac suggests the provider login command. When model names contain cost hints such as Low, Mini, Nano, or Haiku, gac puts those choices first and marks them as low-cost recommendations. For a short commit message, choose the cheapest model that is sufficient; gac does not claim to know exact provider pricing.
 
 ## Configuration
 
@@ -128,9 +130,11 @@ prompt_template: |
 
 prompt_template supports .Language, .Stat, .Diff, and .Context. gac still appends its output contract and validates the generated message.
 
+`language` defaults to `en`. Set it to a locale such as `zh-TW` when the commit message should use another language. gac always appends the language requirement to the fixed prompt contract, including when `prompt_template` is customized.
+
 ## Safety
 
-gac is a commit-message assistant, not an autonomous Git agent. It does not push, change remotes, bypass hooks, or create a commit before explicit confirmation. The AI receives the selected staged diff, its stat, and any context you provide.
+gac is a commit-message assistant, not an autonomous Git agent. It does not push, change remotes, bypass hooks, or create a commit before explicit confirmation. The AI receives the selected diff, its stat, and any context you provide.
 
 ## Development
 

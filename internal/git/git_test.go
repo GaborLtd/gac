@@ -17,7 +17,7 @@ func TestScopeRejectsOutsideRepository(t *testing.T) {
 	}
 }
 
-func TestStagedOnlyCommitDoesNotIncludeUnstagedFile(t *testing.T) {
+func TestPathCommitDoesNotIncludeUnstagedFile(t *testing.T) {
 	root := t.TempDir()
 	runGit(t, root, "init", "-q")
 	runGit(t, root, "config", "user.email", "test@example.com")
@@ -34,7 +34,7 @@ func TestStagedOnlyCommitDoesNotIncludeUnstagedFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scope, err := repo.Scope(nil)
+	scope, err := repo.Scope([]string{"a.txt"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +55,74 @@ func TestStagedOnlyCommitDoesNotIncludeUnstagedFile(t *testing.T) {
 	changed := runGit(t, root, "show", "--format=", "--name-only", "HEAD")
 	if strings.TrimSpace(changed) != "a.txt" {
 		t.Fatalf("commit changed: %q", changed)
+	}
+}
+
+func TestCommitAllIncludesTrackedChangesAndExcludesUntracked(t *testing.T) {
+	root := t.TempDir()
+	runGit(t, root, "init", "-q")
+	runGit(t, root, "config", "user.email", "test@example.com")
+	runGit(t, root, "config", "user.name", "Test")
+	write(t, filepath.Join(root, "a.txt"), "a0")
+	write(t, filepath.Join(root, "b.txt"), "b0")
+	runGit(t, root, "add", ".")
+	runGit(t, root, "commit", "-q", "-m", "init")
+	write(t, filepath.Join(root, "a.txt"), "a1")
+	write(t, filepath.Join(root, "b.txt"), "b1")
+	write(t, filepath.Join(root, "untracked.txt"), "u1")
+	runGit(t, root, "add", "a.txt")
+
+	repo, err := Discover(context.Background(), NewOSRunner(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scope, err := repo.Scope(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	diff, err := repo.WorktreeDiff(context.Background(), scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(diff, "a1") || !strings.Contains(diff, "b1") {
+		t.Fatalf("worktree diff did not include tracked changes: %q", diff)
+	}
+	names, err := repo.ChangedNames(context.Background(), scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(names, "untracked.txt") {
+		t.Fatalf("untracked file appeared in changed names: %q", names)
+	}
+	if err := repo.CommitAll(context.Background(), "feat: update tracked files", scope); err != nil {
+		t.Fatal(err)
+	}
+	changed := runGit(t, root, "show", "--format=", "--name-only", "HEAD")
+	if strings.Contains(changed, "untracked.txt") || !strings.Contains(changed, "a.txt") || !strings.Contains(changed, "b.txt") {
+		t.Fatalf("unexpected commit files: %q", changed)
+	}
+}
+
+func TestWorktreeMethodsHandleRepositoryWithoutHEAD(t *testing.T) {
+	root := t.TempDir()
+	runGit(t, root, "init", "-q")
+	write(t, filepath.Join(root, "a.txt"), "a0")
+	runGit(t, root, "add", "a.txt")
+
+	repo, err := Discover(context.Background(), NewOSRunner(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scope, err := repo.Scope(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	diff, err := repo.WorktreeDiff(context.Background(), scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(diff, "a0") {
+		t.Fatalf("initial staged diff missing: %q", diff)
 	}
 }
 

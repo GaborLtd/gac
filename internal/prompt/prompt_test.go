@@ -7,7 +7,7 @@ func TestBuildDefaultIncludesInputsAndContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"1 file changed", "diff --git", "release note", "Fixed output contract"} {
+	for _, want := range []string{"1 file changed", "diff --git", "release note", "Fixed output contract", "Write the message in en"} {
 		if !contains(got, want) {
 			t.Fatalf("prompt missing %q: %s", want, got)
 		}
@@ -16,7 +16,14 @@ func TestBuildDefaultIncludesInputsAndContract(t *testing.T) {
 
 func TestBuildCustomTemplate(t *testing.T) {
 	got, err := Build(Input{Language: "zh-TW", Diff: "D"}, "lang={{.Language}} diff={{.Diff}}")
-	if err != nil || !contains(got, "lang=zh-TW diff=D") {
+	if err != nil || !contains(got, "lang=zh-TW diff=D") || !contains(got, "Write the message in zh-TW") {
+		t.Fatalf("got %q, err %v", got, err)
+	}
+}
+
+func TestBuildDefaultsLanguageToEnglish(t *testing.T) {
+	got, err := Build(Input{Diff: "D"}, "custom")
+	if err != nil || !contains(got, "Write the message in en") {
 		t.Fatalf("got %q, err %v", got, err)
 	}
 }

@@ -1,18 +1,18 @@
 # gac — Generate AI Commit message
 
-gac 是使用 Go 撰寫的 CLI，利用 AI CLI 將已 staged 的 Git 變更轉成 Conventional Commits 格式的 commit message。
+gac 是使用 Go 撰寫的 CLI，利用 AI CLI 將 Git 變更轉成 Conventional Commits 格式的 commit message。
 
 [English](README.md)
 
 ## 功能
 
-- 只使用 Git index 中已 staged 的變更。
-- 支援指定單一檔案或目錄，限制分析與 commit 範圍。
+- 指定檔案或目錄時，只使用 Git index 中已 staged 的變更。
+- 不指定 path 時，納入目前目錄下 tracked 的 staged 與 unstaged 變更，確認後採用等同 `git commit -a` 的行為。
 - 自動偵測 agy、codex、claude。
 - 可選擇 provider、model、語言與補充脈絡。
 - 支援互動式確認與 non-interactive 輸出。
 - 支援加入 [skip ci]，也能辨識 [ci skip]。
-- 絕不執行 git add、git add -A、git commit -a 或 git push。
+- 不執行獨立的 git add 或 git add -A，也不會納入 untracked 檔案或 push。
 
 ## 安裝
 
@@ -41,7 +41,7 @@ gac
 
 檢查產生的訊息後輸入 y，建立 commit。
 
-沒有指定 path 時，只處理目前工作目錄下已 staged 的變更；指定 path 時，只處理符合該檔案或目錄的 staged 變更：
+沒有指定 path 時，分析目前工作目錄下 tracked 的 staged 與 unstaged 變更，確認後採用等同 `git commit -a` 的行為；指定 path 時，只處理符合該檔案或目錄的 staged 變更：
 
 ~~~sh
 gac
@@ -49,7 +49,7 @@ gac src/
 gac src/main.go
 ~~~
 
-未 staged 的變更永遠不會送給 AI。如果目標檔案同時有 staged 與未 staged 變更，gac 會停止，避免誤產生 partial commit。
+指定 path 時，未 staged 的變更不會送給 AI。如果目標檔案同時有 staged 與未 staged 變更，gac 會停止，避免誤產生 partial commit。Untracked 檔案永遠不會納入。
 
 ## 互動操作
 
@@ -59,7 +59,7 @@ gac src/main.go
 - s / skip：加入 [skip ci]；若已有 [skip ci] 或 [ci skip] 則不重複加入。
 - q / cancel：取消，不建立 commit。
 
-預設輸出語言是英文，可在 onboarding 或設定中修改。
+CLI 介面固定使用英文；預設 AI 輸出語言是英文，可在 onboarding、`--language` 或 YAML 設定中修改。
 
 ## Non-interactive 模式
 
@@ -94,7 +94,9 @@ gac -n --provider agy --model low-cost-model
 gac providers
 ~~~
 
-建議選擇足以處理短 Git diff 的低成本 model。model 名稱會傳給選定的 provider，不會由 gac 硬編碼。
+執行 gac config 時，gac 會嘗試透過選定的 provider 列出 model。agy 會執行 agy models 並顯示結果；Codex 與 Claude 目前沒有可靠的 CLI 帳號可用 model 清單，因此 gac 會顯示 provider 文件 URL，使用者可以直接按 Enter 使用 provider 預設值，或自行輸入 model 名稱。
+
+如果 provider 需要登入，gac 會提示對應的登入指令。當 model 名稱含有 Low、Mini、Nano 或 Haiku 等成本線索時，gac 會將它們排在前面並標記為低成本建議。產生短 commit message 時，建議選擇足夠使用的最便宜 model；gac 不宣稱知道 provider 的精確價格。
 
 ## 設定
 
@@ -128,9 +130,11 @@ prompt_template: |
 
 prompt_template 支援 .Language、.Stat、.Diff 與 .Context。gac 仍會追加輸出格式要求，並驗證 AI 回傳的 commit message。
 
+`language` 預設為 `en`。若要讓 commit message 使用其他語言，可設定例如 `zh-TW`。即使使用自訂 `prompt_template`，gac 仍會把語言要求追加到固定 prompt contract。
+
 ## 安全邊界
 
-gac 是 commit message assistant，不是 autonomous Git agent。它不會 push、不會修改 remote、不會跳過 Git hook，也不會在使用者明確確認前建立 commit。送給 AI 的內容只有選定範圍的 staged diff、stat，以及使用者自行輸入的補充脈絡。
+gac 是 commit message assistant，不是 autonomous Git agent。它不會 push、不會修改 remote、不會跳過 Git hook，也不會在使用者明確確認前建立 commit。送給 AI 的內容是選定範圍的 diff、stat，以及使用者自行輸入的補充脈絡。
 
 ## 開發與測試
 

@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"time"
 
@@ -53,13 +54,13 @@ func (app *application) run(args []string) error {
 	fs := flag.NewFlagSet("gac", flag.ContinueOnError)
 	fs.SetOutput(app.err)
 	nonInteractive := false
-	fs.BoolVar(&nonInteractive, "n", false, "只輸出 message，不互動也不 commit")
-	fs.BoolVar(&nonInteractive, "non-interactive", false, "只輸出 message，不互動也不 commit")
-	providerName := fs.String("provider", "", "provider 名稱")
-	modelName := fs.String("model", "", "model 名稱")
-	language := fs.String("language", "", "輸出語言")
-	skipCI := fs.Bool("skip-ci", false, "加入 [skip ci]")
-	configPath := fs.String("config", "", "YAML config 路徑")
+	fs.BoolVar(&nonInteractive, "n", false, "print the message only; do not interact or commit")
+	fs.BoolVar(&nonInteractive, "non-interactive", false, "print the message only; do not interact or commit")
+	providerName := fs.String("provider", "", "provider name")
+	modelName := fs.String("model", "", "model name")
+	language := fs.String("language", "", "output language")
+	skipCI := fs.Bool("skip-ci", false, "append [skip ci]")
+	configPath := fs.String("config", "", "YAML config path")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -69,12 +70,12 @@ func (app *application) run(args []string) error {
 		var err error
 		path, err = config.Path()
 		if err != nil {
-			return fmt.Errorf("找不到 config 路徑：%w", err)
+			return fmt.Errorf("unable to determine config path: %w", err)
 		}
 	}
 	cfg, err := config.Load(path)
 	if err != nil {
-		return fmt.Errorf("讀取 config 失敗：%w", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 	if *providerName != "" {
 		cfg.Provider = *providerName
@@ -101,31 +102,43 @@ func (app *application) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	stat, err := repo.Stat(ctx, scope)
-	if err != nil {
-		return err
+	allTracked := len(fs.Args()) == 0
+	var stat, diffText, namesText string
+	if allTracked {
+		stat, err = repo.WorktreeStat(ctx, scope)
+		if err == nil {
+			diffText, err = repo.WorktreeDiff(ctx, scope)
+		}
+		if err == nil {
+			namesText, err = repo.ChangedNames(ctx, scope)
+		}
+	} else {
+		stat, err = repo.Stat(ctx, scope)
+		if err == nil {
+			diffText, err = repo.Diff(ctx, scope)
+		}
+		if err == nil {
+			namesText, err = repo.StagedNames(ctx, scope)
+		}
 	}
-	diffText, err := repo.Diff(ctx, scope)
 	if err != nil {
 		return err
 	}
 	if strings.TrimSpace(diffText) == "" {
-		return errors.New("沒有可 commit 的 staged 變更")
+		return errors.New("no tracked changes to commit")
 	}
-	stagedNamesText, err := repo.StagedNames(ctx, scope)
-	if err != nil {
-		return err
+	commitNames := nonEmptyLines(namesText)
+	if len(commitNames) == 0 {
+		return errors.New("no tracked files to commit")
 	}
-	stagedNames := nonEmptyLines(stagedNamesText)
-	if len(stagedNames) == 0 {
-		return errors.New("沒有可 commit 的 staged 檔案")
-	}
-	unstaged, err := repo.UnstagedNames(ctx, stagedNames)
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(unstaged) != "" {
-		return fmt.Errorf("目標檔案有未 staged 變更，為避免誤 commit 請先整理：%s", strings.TrimSpace(unstaged))
+	if !allTracked {
+		unstaged, unstagedErr := repo.UnstagedNames(ctx, commitNames)
+		if unstagedErr != nil {
+			return unstagedErr
+		}
+		if strings.TrimSpace(unstaged) != "" {
+			return fmt.Errorf("target files have unstaged changes; review them before continuing: %s", strings.TrimSpace(unstaged))
+		}
 	}
 
 	limited := diff.Limit(diffText, cfg.DiffMaxBytes, cfg.DiffMaxLines)
@@ -140,8 +153,7 @@ func (app *application) run(args []string) error {
 		cfg.Provider = p.Name()
 	}
 	if cfg.Model == "" && !nonInteractive {
-		fmt.Fprint(app.out, "Model（可留空使用 provider 預設）：")
-		cfg.Model, err = app.readLine()
+		cfg.Model, err = app.chooseModel(ctx, p, cfg.Model)
 		if err != nil {
 			return err
 		}
@@ -158,14 +170,14 @@ func (app *application) run(args []string) error {
 	}
 	if cfg.Provider != "" && !nonInteractive {
 		if err := config.Save(path, cfg); err != nil {
-			return fmt.Errorf("儲存 config 失敗：%w", err)
+			return fmt.Errorf("failed to save config: %w", err)
 		}
 	}
 
 	generate := func(extra string) (string, error) {
 		promptText, err := prompt.Build(prompt.Input{Language: cfg.Language, Stat: stat, Diff: limited.Text, Context: extra}, cfg.PromptTemplate)
 		if err != nil {
-			return "", fmt.Errorf("建立 prompt 失敗：%w", err)
+			return "", fmt.Errorf("failed to build prompt: %w", err)
 		}
 		callCtx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 		defer cancel()
@@ -189,7 +201,7 @@ func (app *application) run(args []string) error {
 	}
 	commitCtx, commitCancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer commitCancel()
-	return app.interactiveCommit(msg, generate, repo, stagedNames, commitCtx)
+	return app.interactiveCommit(msg, generate, repo, commitNames, scope, allTracked, commitCtx)
 }
 
 func (app *application) selectProvider(ctx context.Context, requested string, nonInteractive bool) (provider.Provider, error) {
@@ -200,23 +212,23 @@ func (app *application) selectProvider(ctx context.Context, requested string, no
 				return p, nil
 			}
 		}
-		return nil, fmt.Errorf("provider 不可用或未安裝：%s", requested)
+		return nil, fmt.Errorf("provider is unavailable or not installed: %s", requested)
 	}
 	if len(available) == 0 {
-		return nil, errors.New("找不到可用的 agy、codex 或 claude CLI")
+		return nil, errors.New("no usable agy, codex, or claude CLI found")
 	}
 	if nonInteractive {
-		return nil, errors.New("non-interactive 模式需要先在 config 設定 provider")
+		return nil, errors.New("non-interactive mode requires a configured provider")
 	}
 	if len(available) == 1 {
-		fmt.Fprintf(app.out, "使用 provider：%s\n", available[0].Name())
+		fmt.Fprintf(app.out, "Using provider: %s\n", available[0].Name())
 		return available[0], nil
 	}
-	fmt.Fprintln(app.out, "偵測到可用 provider：")
+	fmt.Fprintln(app.out, "Available providers:")
 	for i, p := range available {
 		fmt.Fprintf(app.out, "%d) %s\n", i+1, p.Name())
 	}
-	fmt.Fprint(app.out, "請選擇 provider [1]：")
+	fmt.Fprint(app.out, "Select provider [1]: ")
 	choice, err := app.readLine()
 	if err != nil {
 		return nil, err
@@ -226,27 +238,31 @@ func (app *application) selectProvider(ctx context.Context, requested string, no
 	}
 	var index int
 	if _, err := fmt.Sscanf(choice, "%d", &index); err != nil || index < 1 || index > len(available) {
-		return nil, errors.New("無效的 provider 選擇")
+		return nil, errors.New("invalid provider selection")
 	}
 	return available[index-1], nil
 }
 
-func (app *application) interactiveCommit(msg string, generate func(string) (string, error), repo git.Repo, stagedNames []string, ctx context.Context) error {
+func (app *application) interactiveCommit(msg string, generate func(string) (string, error), repo git.Repo, commitNames, scope []string, allTracked bool, ctx context.Context) error {
 	extra := ""
 	for {
-		fmt.Fprintf(app.out, "\n📝 建議訊息：\n%s\n", msg)
-		fmt.Fprintln(app.out, "[y] commit  [e] 編輯  [a] 補充脈絡  [s] 加入 [skip ci]  [q] 取消")
-		fmt.Fprint(app.out, "選擇：")
+		fmt.Fprintf(app.out, "\n📝 Suggested message:\n%s\n", msg)
+		fmt.Fprintln(app.out, "[y] commit  [e] edit  [a] add context  [s] add [skip ci]  [q] cancel")
+		fmt.Fprint(app.out, "Choice: ")
 		choice, err := app.readLine()
 		if err != nil {
 			return err
 		}
 		switch strings.ToLower(choice) {
 		case "y", "yes":
-			if err := repo.Commit(ctx, msg, stagedNames); err != nil {
+			if allTracked {
+				if err := repo.CommitAll(ctx, msg, scope); err != nil {
+					return err
+				}
+			} else if err := repo.Commit(ctx, msg, commitNames); err != nil {
 				return err
 			}
-			fmt.Fprintln(app.out, "已建立 commit")
+			fmt.Fprintln(app.out, "Commit created")
 			return nil
 		case "e", "edit":
 			msg, err = editMessage(msg, app.in, app.out, app.err)
@@ -254,7 +270,7 @@ func (app *application) interactiveCommit(msg string, generate func(string) (str
 				return err
 			}
 		case "a", "add":
-			fmt.Fprint(app.out, "請輸入補充脈絡：")
+			fmt.Fprint(app.out, "Additional context: ")
 			addition, err := app.readLine()
 			if err != nil {
 				return err
@@ -267,10 +283,10 @@ func (app *application) interactiveCommit(msg string, generate func(string) (str
 		case "s", "skip":
 			msg = message.AppendCIToken(msg)
 		case "q", "quit", "cancel", "":
-			fmt.Fprintln(app.out, "已取消")
+			fmt.Fprintln(app.out, "Cancelled")
 			return nil
 		default:
-			fmt.Fprintln(app.out, "無效選擇")
+			fmt.Fprintln(app.out, "Invalid choice")
 		}
 	}
 }
@@ -278,7 +294,7 @@ func (app *application) interactiveCommit(msg string, generate func(string) (str
 func (app *application) providers() error {
 	available := provider.DetectAll(provider.NewOSRunner())
 	if len(available) == 0 {
-		return errors.New("找不到可用的 agy、codex 或 claude CLI")
+		return errors.New("no usable agy, codex, or claude CLI found")
 	}
 	for _, p := range available {
 		fmt.Fprintln(app.out, p.Name())
@@ -289,7 +305,7 @@ func (app *application) providers() error {
 func (app *application) configure(args []string) error {
 	fs := flag.NewFlagSet("gac config", flag.ContinueOnError)
 	fs.SetOutput(app.err)
-	configPath := fs.String("config", "", "YAML config 路徑")
+	configPath := fs.String("config", "", "YAML config path")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -307,13 +323,13 @@ func (app *application) configure(args []string) error {
 	}
 	available := provider.DetectAll(provider.NewOSRunner())
 	if len(available) == 0 {
-		return errors.New("找不到可用的 agy、codex 或 claude CLI")
+		return errors.New("no usable agy, codex, or claude CLI found")
 	}
-	fmt.Fprintln(app.out, "可用 provider：")
+	fmt.Fprintln(app.out, "Available providers:")
 	for i, p := range available {
 		fmt.Fprintf(app.out, "%d) %s\n", i+1, p.Name())
 	}
-	fmt.Fprint(app.out, "Provider [1]：")
+	fmt.Fprint(app.out, "Provider [1]: ")
 	choice, err := app.readLine()
 	if err != nil {
 		return err
@@ -323,18 +339,17 @@ func (app *application) configure(args []string) error {
 	}
 	var index int
 	if _, err := fmt.Sscanf(choice, "%d", &index); err != nil || index < 1 || index > len(available) {
-		return errors.New("無效的 provider 選擇")
+		return errors.New("invalid provider selection")
 	}
-	cfg.Provider = available[index-1].Name()
-	fmt.Fprintf(app.out, "Model [%s]：", cfg.Model)
-	model, err := app.readLine()
+	selectedProvider := available[index-1]
+	cfg.Provider = selectedProvider.Name()
+	modelCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	cfg.Model, err = app.chooseModel(modelCtx, selectedProvider, cfg.Model)
+	cancel()
 	if err != nil {
 		return err
 	}
-	if model != "" {
-		cfg.Model = model
-	}
-	fmt.Fprintf(app.out, "Language [%s]：", cfg.Language)
+	fmt.Fprintf(app.out, "Language [%s]: ", cfg.Language)
 	language, err := app.readLine()
 	if err != nil {
 		return err
@@ -345,8 +360,83 @@ func (app *application) configure(args []string) error {
 	if err := config.Save(path, cfg); err != nil {
 		return err
 	}
-	fmt.Fprintln(app.out, "已儲存：", path)
+	fmt.Fprintln(app.out, "Saved:", path)
 	return nil
+}
+
+func (app *application) chooseModel(ctx context.Context, p provider.Provider, current string) (string, error) {
+	models, listErr := p.ListModels(ctx)
+	if listErr == nil && len(models) > 0 {
+		sort.SliceStable(models, func(i, j int) bool {
+			return modelCostRank(models[i]) < modelCostRank(models[j])
+		})
+		fmt.Fprintln(app.out, "Recommendation: use the cheapest model that is sufficient for a commit message.")
+		fmt.Fprintln(app.out, "Available models:")
+		for i, model := range models {
+			fmt.Fprintf(app.out, "%d) %s%s\n", i+1, model, modelCostHint(model))
+		}
+		fmt.Fprintln(app.out, "0) Enter a model name manually")
+	}
+	if listErr != nil {
+		fmt.Fprintln(app.out, "This provider CLI cannot list account-specific models.")
+		if p.LoginHint() != "" {
+			fmt.Fprintf(app.out, "If you have not signed in yet, run: %s\n", p.LoginHint())
+		}
+		if p.DocsURL() != "" {
+			fmt.Fprintf(app.out, "Model documentation: %s\n", p.DocsURL())
+		}
+	}
+	defaultLabel := current
+	if defaultLabel == "" {
+		defaultLabel = "provider default"
+	}
+	if listErr == nil && len(models) > 0 {
+		fmt.Fprintf(app.out, "Model [%s] (press Enter for the provider default, enter a number or model name): ", defaultLabel)
+	} else {
+		fmt.Fprintf(app.out, "Model [%s] (press Enter for the provider default, or enter a model name): ", defaultLabel)
+	}
+	choice, err := app.readLine()
+	if err != nil {
+		return "", err
+	}
+	if choice == "" {
+		return current, nil
+	}
+	if listErr == nil && len(models) > 0 {
+		var index int
+		if _, scanErr := fmt.Sscanf(choice, "%d", &index); scanErr == nil {
+			if index == 0 {
+				fmt.Fprint(app.out, "Model name: ")
+				return app.readLine()
+			}
+			if index >= 1 && index <= len(models) {
+				return models[index-1], nil
+			}
+			return "", errors.New("invalid model number")
+		}
+	}
+	return choice, nil
+}
+
+func modelCostRank(model string) int {
+	name := strings.ToLower(model)
+	switch {
+	case strings.Contains(name, "low"), strings.Contains(name, "cheap"), strings.Contains(name, "mini"), strings.Contains(name, "nano"), strings.Contains(name, "haiku"):
+		return 0
+	case strings.Contains(name, "medium"), strings.Contains(name, "sonnet"), strings.Contains(name, "flash"):
+		return 1
+	case strings.Contains(name, "high"), strings.Contains(name, "opus"), strings.Contains(name, "pro"):
+		return 2
+	default:
+		return 1
+	}
+}
+
+func modelCostHint(model string) string {
+	if modelCostRank(model) == 0 {
+		return " (low-cost recommendation)"
+	}
+	return ""
 }
 
 func editMessage(msg string, in io.Reader, out, errOut io.Writer) (string, error) {
@@ -376,7 +466,7 @@ func editMessage(msg string, in io.Reader, out, errOut io.Writer) (string, error
 	cmd := exec.Command(editor, path)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = in, out, errOut
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("editor 失敗：%w", err)
+		return "", fmt.Errorf("editor failed: %w", err)
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {

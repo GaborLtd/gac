@@ -46,11 +46,11 @@ func Discover(ctx context.Context, r Runner, cwd string) (Repo, error) {
 	}
 	out, stderr, err := r.Run(ctx, cwd, "git", []string{"rev-parse", "--show-toplevel"}, "")
 	if err != nil {
-		return Repo{}, fmt.Errorf("不是 Git repository：%s", strings.TrimSpace(stderr))
+		return Repo{}, fmt.Errorf("not a Git repository: %s", strings.TrimSpace(stderr))
 	}
 	root := strings.TrimSpace(out)
 	if root == "" {
-		return Repo{}, fmt.Errorf("無法取得 Git repository root")
+		return Repo{}, fmt.Errorf("unable to determine Git repository root")
 	}
 	if canonicalRoot, evalErr := filepath.EvalSymlinks(root); evalErr == nil {
 		root = canonicalRoot
@@ -66,7 +66,7 @@ func (repo Repo) Scope(paths []string) ([]string, error) {
 	result := make([]string, 0, len(paths))
 	for _, raw := range paths {
 		if raw == "" {
-			return nil, fmt.Errorf("path 不可為空")
+			return nil, fmt.Errorf("path cannot be empty")
 		}
 		path := raw
 		if !filepath.IsAbs(path) {
@@ -75,7 +75,7 @@ func (repo Repo) Scope(paths []string) ([]string, error) {
 		path = filepath.Clean(path)
 		rel, err := filepath.Rel(repo.Root, path)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return nil, fmt.Errorf("path 超出 repository：%s", raw)
+			return nil, fmt.Errorf("path is outside the repository: %s", raw)
 		}
 		if rel == "." {
 			rel = "."
@@ -96,7 +96,7 @@ func (repo Repo) relative(path string) string {
 func (repo Repo) git(ctx context.Context, args ...string) (string, error) {
 	out, stderr, err := repo.Run.Run(ctx, repo.Root, "git", args, "")
 	if err != nil {
-		return "", fmt.Errorf("git %s 失敗：%s", strings.Join(args, " "), strings.TrimSpace(stderr))
+		return "", fmt.Errorf("git %s failed: %s", strings.Join(args, " "), strings.TrimSpace(stderr))
 	}
 	return out, nil
 }
@@ -108,9 +108,29 @@ func (repo Repo) Stat(ctx context.Context, scope []string) (string, error) {
 	return repo.git(ctx, args...)
 }
 
+// WorktreeStat 取得 HEAD 到目前工作樹的 stat，包含 staged 與 tracked 的 unstaged 變更。
+func (repo Repo) WorktreeStat(ctx context.Context, scope []string) (string, error) {
+	if !repo.hasHEAD(ctx) {
+		return repo.Stat(ctx, scope)
+	}
+	args := []string{"diff", "HEAD", "--stat", "--"}
+	args = append(args, scope...)
+	return repo.git(ctx, args...)
+}
+
 // Diff 取得 staged diff。
 func (repo Repo) Diff(ctx context.Context, scope []string) (string, error) {
 	args := []string{"diff", "--cached", "--"}
+	args = append(args, scope...)
+	return repo.git(ctx, args...)
+}
+
+// WorktreeDiff 取得 HEAD 到目前工作樹的 diff，包含 staged 與 tracked 的 unstaged 變更。
+func (repo Repo) WorktreeDiff(ctx context.Context, scope []string) (string, error) {
+	if !repo.hasHEAD(ctx) {
+		return repo.Diff(ctx, scope)
+	}
+	args := []string{"diff", "HEAD", "--"}
 	args = append(args, scope...)
 	return repo.git(ctx, args...)
 }
@@ -122,6 +142,21 @@ func (repo Repo) StagedNames(ctx context.Context, scope []string) (string, error
 	return repo.git(ctx, args...)
 }
 
+// ChangedNames 取得 HEAD 到目前工作樹的 tracked 檔案清單；不包含 untracked 檔案。
+func (repo Repo) ChangedNames(ctx context.Context, scope []string) (string, error) {
+	if !repo.hasHEAD(ctx) {
+		return repo.StagedNames(ctx, scope)
+	}
+	args := []string{"diff", "HEAD", "--name-only", "--"}
+	args = append(args, scope...)
+	return repo.git(ctx, args...)
+}
+
+func (repo Repo) hasHEAD(ctx context.Context) bool {
+	_, _, err := repo.Run.Run(ctx, repo.Root, "git", []string{"rev-parse", "--verify", "HEAD"}, "")
+	return err == nil
+}
+
 // UnstagedNames 找出 scope 中尚未 staged 的變更。
 func (repo Repo) UnstagedNames(ctx context.Context, scope []string) (string, error) {
 	args := []string{"diff", "--name-only", "--"}
@@ -129,13 +164,24 @@ func (repo Repo) UnstagedNames(ctx context.Context, scope []string) (string, err
 	return repo.git(ctx, args...)
 }
 
-// Commit 只使用給定的 staged file 清單，不使用 -a。
+// Commit 只使用給定的 staged file 清單。
 func (repo Repo) Commit(ctx context.Context, message string, stagedNames []string) error {
 	args := []string{"commit", "--only", "-m", message, "--"}
 	args = append(args, stagedNames...)
 	_, stderr, err := repo.Run.Run(ctx, repo.Root, "git", args, "")
 	if err != nil {
-		return fmt.Errorf("git commit 失敗：%s", strings.TrimSpace(stderr))
+		return fmt.Errorf("git commit failed: %s", strings.TrimSpace(stderr))
+	}
+	return nil
+}
+
+// CommitAll 使用 git commit -a 的語意，只在指定 scope 內納入 tracked 變更。
+func (repo Repo) CommitAll(ctx context.Context, message string, scope []string) error {
+	args := []string{"commit", "-a", "-m", message, "--"}
+	args = append(args, scope...)
+	_, stderr, err := repo.Run.Run(ctx, repo.Root, "git", args, "")
+	if err != nil {
+		return fmt.Errorf("git commit -a failed: %s", strings.TrimSpace(stderr))
 	}
 	return nil
 }

@@ -4,7 +4,7 @@
 
 ## 核心測試
 
-- Git repository：staged、unstaged 不被誤納入、指定檔案、指定目錄、目前工作目錄、partial staging 保護、空變更、非 repository；確認測試不會執行 add／`-A`／`-a`。
+- Git repository：無 path 時納入 tracked staged／unstaged 並排除 untracked，指定 path 時只納入 staged、指定檔案、指定目錄、目前工作目錄、partial staging 保護、空變更、非 repository；確認不執行獨立 add／`-A`。
 - Diff 限制：line／byte 上限、檔案標頭保留、截斷標記、UTF-8 與 binary 檔案。
 - Prompt：stat、diff、補充脈絡、語言與限制正確注入；不得意外混入未選範圍。
 - Non-interactive：stdout 只有 message、stderr 才有診斷，且不建立 commit，可安全 pipe。
@@ -14,7 +14,7 @@
 
 ## Provider 測試
 
-使用 fake executable、fake HTTP server 與固定回應測試：detect、health、model 選擇、timeout、非零退出、空回應、格式清理、credential 遮罩與可選 fallback。
+使用 fake executable、fake HTTP server 與固定回應測試：detect、model list 解析、低成本排序與標記、登入提示、文件 URL fallback、timeout、非零退出、空回應、格式清理、credential 遮罩與可選 fallback。
 
 ## 文件與品質閘門
 
