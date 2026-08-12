@@ -153,5 +153,3 @@ make build
 git tag -a v0.1.0 -m "release v0.1.0"
 git push origin v0.1.0
 ~~~
-
-GitHub Actions 會自動建置各平台 binary、產生 SHA256 checksum 並發布 GitHub Release。維護者細節請見 [CI/CD](docs/07-cicd.md) 與 [Release](docs/08-release.md)。
