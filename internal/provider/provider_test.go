@@ -89,6 +89,21 @@ func TestCodexAndClaudeInvocation(t *testing.T) {
 	}
 }
 
+func TestCodexInvocationWithLowEffort(t *testing.T) {
+	r := &captureRunner{}
+	ep, ok := NewCodex(r).(EffortProvider)
+	if !ok {
+		t.Fatal("codex does not support effort")
+	}
+	if _, err := ep.GenerateWithEffort(context.Background(), "gpt-5.4-mini", "low", "p"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"exec", "--model", "gpt-5.4-mini", "--effort", "low", "p"}
+	if !same(r.args, want) {
+		t.Fatalf("args %v, want %v", r.args, want)
+	}
+}
+
 func same(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

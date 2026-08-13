@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-08-13",
+  "source_policy": "Recommendations only. Availability, access and price depend on the provider account and CLI version.",
+  "providers": {
+    "agy": {
+      "docs_url": "https://www.antigravity.google/docs/cli-using",
+      "login_hint": "run agy, complete browser sign-in, then retry",
+      "models": [
+        {
+          "id": "gemini-3.6-flash-lite-low",
+          "value": "Gemini 3.6 Flash Lite (Low)",
+          "display_name": "Gemini 3.6 Flash Lite (Low-cost recommendation)",
+          "cost_tier": "low",
+          "recommended": true,
+          "availability": "Verify with `agy models`",
+          "documentation": "https://www.antigravity.google/docs/cli-using"
+        },
+        {
+          "id": "gemini-3.6-flash-low",
+          "value": "Gemini 3.6 Flash (Low)",
+          "display_name": "Gemini 3.6 Flash (Low-cost fallback)",
+          "cost_tier": "low",
+          "recommended": true,
+          "availability": "Verify with `agy models`",
+          "documentation": "https://www.antigravity.google/docs/cli-using"
+        },
+        {
+          "id": "gemini-3.5-flash-lite-low",
+          "value": "Gemini 3.5 Flash Lite (Low)",
+          "display_name": "Gemini 3.5 Flash Lite (Low-cost fallback)",
+          "cost_tier": "low",
+          "recommended": true,
+          "availability": "Verify with `agy models`",
+          "documentation": "https://www.antigravity.google/docs/cli-using"
+        },
+        {
+          "id": "gemini-3.5-flash-low",
+          "value": "Gemini 3.5 Flash (Low)",
+          "display_name": "Gemini 3.5 Flash (Low-cost fallback)",
+          "cost_tier": "low",
+          "recommended": true,
+          "availability": "Verify with `agy models`",
+          "documentation": "https://www.antigravity.google/docs/cli-using"
+        }
+      ]
+    },
+    "codex": {
+      "docs_url": "https://developers.openai.com/api/docs/models",
+      "login_hint": "codex login",
+      "models": [
+        {
+          "id": "gpt-5.4-mini",
+          "value": "gpt-5.4-mini",
+          "display_name": "GPT-5.4 mini (low-cost recommendation)",
+          "cost_tier": "low",
+          "recommended": true,
+          "reasoning_effort": "low",
+          "availability": "Verify with your Codex account and CLI version",
+          "documentation": "https://developers.openai.com/api/docs/models/gpt-5.4-mini"
+        },
+        {
+          "id": "gpt-5.4",
+          "value": "gpt-5.4",
+          "display_name": "GPT-5.4 (low-cost fallback)",
+          "cost_tier": "low",
+          "recommended": true,
+          "reasoning_effort": "low",
+          "availability": "Verify with your Codex account and CLI version",
+          "documentation": "https://developers.openai.com/api/docs/models/gpt-5.4"
+        },
+        {
+          "id": "gpt-5.5",
+          "value": "gpt-5.5",
+          "display_name": "GPT-5.5 (low-cost fallback)",
+          "cost_tier": "low",
+          "recommended": true,
+          "reasoning_effort": "low",
+          "availability": "Verify with your Codex account and CLI version",
+          "documentation": "https://developers.openai.com/api/docs/models"
+        },
+        {
+          "id": "gpt-5.6-luna",
+          "value": "gpt-5.6-luna",
+          "display_name": "GPT-5.6 Luna (low-cost recommendation)",
+          "cost_tier": "low",
+          "recommended": true,
+          "reasoning_effort": "low",
+          "availability": "Verify with your Codex account and CLI version",
+          "documentation": "https://developers.openai.com/api/docs/models"
+        },
+        {
+          "id": "gpt-5.6-terra",
+          "value": "gpt-5.6-terra",
+          "display_name": "GPT-5.6 Terra (balanced fallback)",
+          "cost_tier": "low",
+          "recommended": true,
+          "reasoning_effort": "low",
+          "availability": "Verify with your Codex account and CLI version",
+          "documentation": "https://developers.openai.com/api/docs/models"
+        },
+        {
+          "id": "gpt-5.6-sol",
+          "value": "gpt-5.6-sol",
+          "display_name": "GPT-5.6 Sol (quality fallback)",
+          "cost_tier": "low",
+          "recommended": true,
+          "reasoning_effort": "low",
+          "availability": "Verify with your Codex account and CLI version",
+          "documentation": "https://developers.openai.com/api/docs/models"
+        }
+      ]
+    },
+    "claude": {
+      "docs_url": "https://docs.anthropic.com/en/docs/claude-code/cli-usage",
+      "login_hint": "run claude and complete sign-in",
+      "models": [
+        {
+          "id": "claude-3-5-haiku-20241022",
+          "value": "claude-3-5-haiku-20241022",
+          "display_name": "Claude Haiku 3.5 (low-cost recommendation)",
+          "cost_tier": "low",
+          "recommended": true,
+          "availability": "Verify with your Claude Code account and CLI version",
+          "documentation": "https://docs.anthropic.com/en/docs/claude-code/cli-usage"
+        }
+      ]
+    }
+  }
+}

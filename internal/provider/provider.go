@@ -29,8 +29,10 @@ func (osRunner) Run(ctx context.Context, name string, args []string) (string, st
 
 // Provider 是 AI CLI adapter 的最小介面。
 type Model struct {
-	ID          string
-	DisplayName string
+	ID              string
+	DisplayName     string
+	ProviderValue   string
+	ReasoningEffort string
 }
 
 func (m Model) Label() string {
@@ -41,6 +43,9 @@ func (m Model) Label() string {
 }
 
 func (m Model) Value() string {
+	if m.ProviderValue != "" {
+		return m.ProviderValue
+	}
 	if m.DisplayName != "" {
 		return m.DisplayName
 	}

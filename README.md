@@ -94,9 +94,17 @@ List detected providers:
 gac providers
 ~~~
 
-During gac config, gac tries to list models through the selected provider. agy uses agy models and shows each model ID with its display name; it saves and passes the provider-compatible value (for agy, the display name). Codex and Claude do not currently expose a reliable account-specific model list through their CLIs, so gac shows the provider documentation URL and lets you press Enter to use the provider default or type a model name manually.
+During gac config, gac loads a small catalog of multiple low-cost candidates for the selected provider. agy still queries `agy models` when available; Codex and Claude do not currently expose a reliable account-specific model list, so gac also shows the provider documentation URL and login hint. Each catalog entry keeps a provider-compatible value separate from its display label, and Codex candidates include `reasoning_effort: low` so short commit messages use the lowest-effort setting by default.
 
-If the provider needs authentication, gac suggests the provider login command. When model names contain cost hints such as Low, Mini, Nano, or Haiku, gac puts those choices first and marks them as low-cost recommendations. For a short commit message, choose the cheapest model that is sufficient; gac does not claim to know exact provider pricing.
+If the provider needs authentication, gac suggests the provider login command. The catalog intentionally keeps several fallback candidates because model availability can change with provider accounts or CLI updates. For a short commit message, choose the cheapest model that is sufficient; gac does not claim to know exact provider pricing. gac does not silently retry another provider or model after a generation failure; choose another listed candidate explicitly to keep routing and cost visible.
+
+The repository also publishes a small recommended model catalog:
+
+~~~sh
+curl -fsSL https://raw.githubusercontent.com/GaborLtd/gac/main/models.json
+~~~
+
+`gac config` downloads this catalog when possible and falls back to the copy embedded in the binary. It contains several low-cost recommendations per provider, not a complete model list; model access, names, pricing, and availability can change by provider account or CLI version. Use the provider.s login command and model-list command to verify before saving a choice. Set `GAC_MODELS_URL` to use a mirror or a pinned catalog.
 
 ## Configuration
 
@@ -113,6 +121,7 @@ Example:
 ~~~yaml
 provider: agy
 model: low-cost-model
+reasoning_effort: low
 language: en
 diff_max_bytes: 65536
 diff_max_lines: 1000
@@ -147,9 +156,15 @@ Detailed design and policy documents are in [docs/index.md](docs/index.md).
 
 ## Release
 
-Create and push a semantic version tag:
+Generate and review release notes, then create the tag locally:
 
 ~~~sh
-git tag -a v0.1.0 -m "release v0.1.0"
-git push origin v0.1.0
+gac release preview v0.1.3
+gac release tag v0.1.3
+git show v0.1.3
+git push origin v0.1.3
 ~~~
+
+`gac release preview` asks the configured provider to summarize commits since the previous release tag. `gac release tag` lets you edit and confirm the Markdown annotated tag message, creates only a local tag, and never pushes automatically. The tag must use `vMAJOR.MINOR.PATCH` and be newer than the previous release.
+
+This project is released under the [MIT License](LICENSE).

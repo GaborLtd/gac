@@ -10,14 +10,15 @@ import (
 func TestSaveLoadYAMLWithPromptTemplate(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "gac.yaml")
 	want := Config{
-		Provider:       "agy",
-		Model:          "cheap-model",
-		Language:       "en",
-		DiffMaxBytes:   1234,
-		DiffMaxLines:   12,
-		PromptTemplate: "Use {{.Language}}.\nDiff:\n{{.Diff}}",
-		TimeoutSeconds: 9,
-		SkipCIMode:     "ask",
+		Provider:        "agy",
+		Model:           "cheap-model",
+		ReasoningEffort: "low",
+		Language:        "en",
+		DiffMaxBytes:    1234,
+		DiffMaxLines:    12,
+		PromptTemplate:  "Use {{.Language}}.\nDiff:\n{{.Diff}}",
+		TimeoutSeconds:  9,
+		SkipCIMode:      "ask",
 	}
 	if err := Save(path, want); err != nil {
 		t.Fatal(err)
@@ -26,7 +27,7 @@ func TestSaveLoadYAMLWithPromptTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Provider != want.Provider || got.Model != want.Model || got.Language != want.Language || got.DiffMaxBytes != want.DiffMaxBytes || got.DiffMaxLines != want.DiffMaxLines || got.TimeoutSeconds != want.TimeoutSeconds || got.SkipCIMode != want.SkipCIMode || strings.TrimSpace(got.PromptTemplate) != want.PromptTemplate {
+	if got.Provider != want.Provider || got.Model != want.Model || got.ReasoningEffort != want.ReasoningEffort || got.Language != want.Language || got.DiffMaxBytes != want.DiffMaxBytes || got.DiffMaxLines != want.DiffMaxLines || got.TimeoutSeconds != want.TimeoutSeconds || got.SkipCIMode != want.SkipCIMode || strings.TrimSpace(got.PromptTemplate) != want.PromptTemplate {
 		t.Fatalf("config round-trip mismatch: got %#v want %#v", got, want)
 	}
 }

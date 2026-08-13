@@ -11,14 +11,15 @@ import (
 
 // Config 是 gac 的持久化設定。
 type Config struct {
-	Provider       string `yaml:"provider"`
-	Model          string `yaml:"model"`
-	Language       string `yaml:"language"`
-	DiffMaxBytes   int    `yaml:"diff_max_bytes"`
-	DiffMaxLines   int    `yaml:"diff_max_lines"`
-	PromptTemplate string `yaml:"prompt_template"`
-	TimeoutSeconds int    `yaml:"timeout_seconds"`
-	SkipCIMode     string `yaml:"skip_ci_mode"`
+	Provider        string `yaml:"provider"`
+	Model           string `yaml:"model"`
+	ReasoningEffort string `yaml:"reasoning_effort"`
+	Language        string `yaml:"language"`
+	DiffMaxBytes    int    `yaml:"diff_max_bytes"`
+	DiffMaxLines    int    `yaml:"diff_max_lines"`
+	PromptTemplate  string `yaml:"prompt_template"`
+	TimeoutSeconds  int    `yaml:"timeout_seconds"`
+	SkipCIMode      string `yaml:"skip_ci_mode"`
 }
 
 // Default 回傳安全且適合 commit message 的預設值。
@@ -152,6 +153,8 @@ func setValue(cfg *Config, key, value string) error {
 		cfg.Provider = value
 	case "model":
 		cfg.Model = value
+	case "reasoning_effort":
+		cfg.ReasoningEffort = value
 	case "language":
 		cfg.Language = value
 	case "diff_max_bytes":
@@ -184,7 +187,7 @@ func setValue(cfg *Config, key, value string) error {
 
 func formatYAML(cfg Config) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "provider: %s\nmodel: %s\nlanguage: %s\ndiff_max_bytes: %d\ndiff_max_lines: %d\ntimeout_seconds: %d\nskip_ci_mode: %s\n", quote(cfg.Provider), quote(cfg.Model), quote(cfg.Language), cfg.DiffMaxBytes, cfg.DiffMaxLines, cfg.TimeoutSeconds, quote(cfg.SkipCIMode))
+	fmt.Fprintf(&b, "provider: %s\nmodel: %s\nreasoning_effort: %s\nlanguage: %s\ndiff_max_bytes: %d\ndiff_max_lines: %d\ntimeout_seconds: %d\nskip_ci_mode: %s\n", quote(cfg.Provider), quote(cfg.Model), quote(cfg.ReasoningEffort), quote(cfg.Language), cfg.DiffMaxBytes, cfg.DiffMaxLines, cfg.TimeoutSeconds, quote(cfg.SkipCIMode))
 	if cfg.PromptTemplate != "" {
 		b.WriteString("prompt_template: |\n")
 		for _, line := range strings.Split(cfg.PromptTemplate, "\n") {

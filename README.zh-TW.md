@@ -96,7 +96,15 @@ gac providers
 
 執行 gac config 時，gac 會嘗試透過選定的 provider 列出 model。agy 會執行 agy models，將 model ID 與 display name 分開顯示，設定檔保存 provider 可接受的值（agy 使用 display name）；Codex 與 Claude 目前沒有可靠的 CLI 帳號可用 model 清單，因此 gac 會顯示 provider 文件 URL，使用者可以直接按 Enter 使用 provider 預設值，或自行輸入 model 名稱。
 
-如果 provider 需要登入，gac 會提示對應的登入指令。當 model 名稱含有 Low、Mini、Nano 或 Haiku 等成本線索時，gac 會將它們排在前面並標記為低成本建議。產生短 commit message 時，建議選擇足夠使用的最便宜 model；gac 不宣稱知道 provider 的精確價格。
+如果 provider 需要登入，gac 會提示對應的登入指令。catalog 刻意保留多個 fallback，因為 provider 帳號權限或 CLI 更新可能讓某個 model 暫時不可用。產生短 commit message 時，建議選擇足夠使用的最便宜 model；gac 不宣稱知道 provider 的精確價格。gac 不會在失敗後默默改送另一個 provider 或 model；這樣 routing 與成本保持可見，使用者可重新執行 `gac config` 選擇其他候選。
+
+repository 也公開一份小型的低成本 model 建議清單：
+
+~~~sh
+curl -fsSL https://raw.githubusercontent.com/GaborLtd/gac/main/models.json
+~~~
+
+`gac config` 會優先抓取這份清單，失敗時使用 binary 內建版本。清單每個 provider 有多個低成本建議，但不是完整 model list；不保證帳號權限、model 名稱、價格或 CLI 版本一定相同，請依 provider 的登入與 model list 指令確認。若要使用 mirror 或固定版本，可設定 `GAC_MODELS_URL`。
 
 ## 設定
 
@@ -113,6 +121,7 @@ gac config
 ~~~yaml
 provider: agy
 model: low-cost-model
+reasoning_effort: low
 language: en
 diff_max_bytes: 65536
 diff_max_lines: 1000
@@ -147,9 +156,15 @@ make build
 
 ## Release
 
-建立並推送 semantic version tag：
+產生並檢查 release notes，再在本機建立 tag：
 
 ~~~sh
-git tag -a v0.1.0 -m "release v0.1.0"
-git push origin v0.1.0
+gac release preview v0.1.3
+gac release tag v0.1.3
+git show v0.1.3
+git push origin v0.1.3
 ~~~
+
+`gac release preview` 會使用設定的 provider，整理上一個 release tag 到目前 `HEAD` 的 commit。`gac release tag` 會讓你編輯並確認 Markdown annotated tag message，只建立本機 tag，不會自動 push。版本必須使用 `vMAJOR.MINOR.PATCH`，且大於前一個 release。
+
+本專案採用 [MIT License](LICENSE)。

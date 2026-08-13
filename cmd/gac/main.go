@@ -49,6 +49,8 @@ func (app *application) run(args []string) error {
 			return app.providers()
 		case "config":
 			return app.configure(args[1:])
+		case "release":
+			return app.release(args[1:])
 		}
 	}
 
@@ -173,7 +175,7 @@ func (app *application) run(args []string) error {
 		cfg.Provider = p.Name()
 	}
 	if cfg.Model == "" && !nonInteractive {
-		cfg.Model, err = app.chooseModel(ctx, p, cfg.Model)
+		cfg.Model, cfg.ReasoningEffort, err = app.chooseModelFromCatalog(ctx, p, cfg.Model, cfg.ReasoningEffort)
 		if err != nil {
 			return err
 		}
@@ -201,7 +203,7 @@ func (app *application) run(args []string) error {
 		}
 		callCtx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 		defer cancel()
-		raw, err := p.Generate(callCtx, cfg.Model, promptText)
+		raw, err := generateWithEffort(callCtx, p, cfg.Model, cfg.ReasoningEffort, promptText)
 		if err != nil {
 			return "", err
 		}
@@ -222,6 +224,13 @@ func (app *application) run(args []string) error {
 	commitCtx, commitCancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer commitCancel()
 	return app.interactiveCommit(msg, generate, repo, commitNames, allTracked, commitCtx)
+}
+
+func generateWithEffort(ctx context.Context, p provider.Provider, model, effort, promptText string) (string, error) {
+	if ep, ok := p.(provider.EffortProvider); ok {
+		return ep.GenerateWithEffort(ctx, model, effort, promptText)
+	}
+	return p.Generate(ctx, model, promptText)
 }
 
 func (app *application) selectProvider(ctx context.Context, requested string, nonInteractive bool) (provider.Provider, error) {
@@ -364,7 +373,7 @@ func (app *application) configure(args []string) error {
 	selectedProvider := available[index-1]
 	cfg.Provider = selectedProvider.Name()
 	modelCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	cfg.Model, err = app.chooseModel(modelCtx, selectedProvider, cfg.Model)
+	cfg.Model, cfg.ReasoningEffort, err = app.chooseModelFromCatalog(modelCtx, selectedProvider, cfg.Model, cfg.ReasoningEffort)
 	cancel()
 	if err != nil {
 		return err
@@ -385,11 +394,13 @@ func (app *application) configure(args []string) error {
 }
 
 func (app *application) chooseModel(ctx context.Context, p provider.Provider, current string) (string, error) {
+	model, _, err := app.chooseModelSelection(ctx, p, current, "")
+	return model, err
+}
+
+func (app *application) chooseModelSelection(ctx context.Context, p provider.Provider, current, currentEffort string) (string, string, error) {
 	models, listErr := p.ListModels(ctx)
-	currentValue := current
-	if listErr == nil {
-		currentValue = normalizeCurrentModel(current, models)
-	}
+	currentValue, selectedEffort := normalizeCurrentSelection(current, currentEffort, models)
 	if listErr == nil && len(models) > 0 {
 		sort.SliceStable(models, func(i, j int) bool {
 			return modelCostRank(models[i].ID+" "+models[i].DisplayName) < modelCostRank(models[j].ID+" "+models[j].DisplayName)
@@ -397,7 +408,7 @@ func (app *application) chooseModel(ctx context.Context, p provider.Provider, cu
 		fmt.Fprintln(app.out, "Recommendation: use the cheapest model that is sufficient for a commit message.")
 		fmt.Fprintln(app.out, "Available models:")
 		for i, model := range models {
-			fmt.Fprintf(app.out, "%d) %s%s\n", i+1, model.Label(), modelCostHint(model.ID+" "+model.DisplayName))
+			fmt.Fprintf(app.out, "%d) %s%s\n", i+1, displayModelLabel(model), modelCostHint(model.ID+" "+model.DisplayName))
 		}
 		fmt.Fprintln(app.out, "0) Enter a model name manually")
 	}
@@ -414,6 +425,9 @@ func (app *application) chooseModel(ctx context.Context, p provider.Provider, cu
 	if defaultLabel == "" {
 		defaultLabel = "provider default"
 	}
+	if selectedEffort != "" {
+		defaultLabel += " (effort: " + selectedEffort + ")"
+	}
 	if listErr == nil && len(models) > 0 {
 		fmt.Fprintf(app.out, "Model [%s] (press Enter for the provider default, enter a number or model name): ", defaultLabel)
 	} else {
@@ -421,25 +435,51 @@ func (app *application) chooseModel(ctx context.Context, p provider.Provider, cu
 	}
 	choice, err := app.readLine()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if choice == "" {
-		return currentValue, nil
+		return currentValue, selectedEffort, nil
 	}
 	if listErr == nil && len(models) > 0 {
 		var index int
 		if _, scanErr := fmt.Sscanf(choice, "%d", &index); scanErr == nil {
 			if index == 0 {
 				fmt.Fprint(app.out, "Model name: ")
-				return app.readLine()
+				model, readErr := app.readLine()
+				return model, selectedEffort, readErr
 			}
 			if index >= 1 && index <= len(models) {
-				return models[index-1].Value(), nil
+				selected := models[index-1]
+				return selected.Value(), selected.ReasoningEffort, nil
 			}
-			return "", errors.New("invalid model number")
+			return "", "", errors.New("invalid model number")
 		}
 	}
-	return choice, nil
+	return choice, selectedEffort, nil
+}
+
+func displayModelLabel(model provider.Model) string {
+	label := model.Label()
+	if model.ReasoningEffort != "" {
+		label += " (effort: " + model.ReasoningEffort + ")"
+	}
+	return label
+}
+
+func normalizeCurrentSelection(current, effort string, models []provider.Model) (string, string) {
+	value := normalizeCurrentModel(current, models)
+	if value == "" {
+		value = strings.TrimSpace(current)
+	}
+	if strings.TrimSpace(effort) == "" {
+		for _, model := range models {
+			if model.Value() == value {
+				effort = model.ReasoningEffort
+				break
+			}
+		}
+	}
+	return value, effort
 }
 
 func normalizeCurrentModel(current string, models []provider.Model) string {

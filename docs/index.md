@@ -12,6 +12,8 @@
 6. [文件政策](06-document-policy.md)：3000 字元限制、整理流程與索引規則。
 7. [CI/CD](07-cicd.md)：文件、Go code、installer 的自動驗證。
 8. [Release 與安裝](08-release.md)：binary、tag、checksum 與 installer 流程。
+9. [Release message 與 tag 指令](09-release-command.md)：使用 AI 產生 release notes，確認後建立本機 tag。
+10. [Model catalog](10-model-catalog.md)：低成本 model 建議、GitHub Raw 來源與 fallback 規則。
 
 ## 非必要查詢
 
