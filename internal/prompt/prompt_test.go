@@ -7,7 +7,7 @@ func TestBuildDefaultIncludesInputsAndContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"1 file changed", "diff --git", "release note", "Fixed output contract", "Write the message in en"} {
+	for _, want := range []string{"follows the Conventional Commits format", "Output only the message itself", "1 file changed", "diff --git", "release note", "Fixed output contract", "Write the message in en"} {
 		if !contains(got, want) {
 			t.Fatalf("prompt missing %q: %s", want, got)
 		}

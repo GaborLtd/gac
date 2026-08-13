@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -12,7 +13,7 @@ type EffortProvider interface {
 	GenerateWithEffort(ctx context.Context, model, effort, prompt string) (string, error)
 }
 
-// GenerateWithEffort 對 Codex 傳遞 --effort；agy 與 Claude 維持原本 invocation。
+// GenerateWithEffort 對 Codex 使用目前 CLI 支援的 --config model_reasoning_effort 設定；agy 與 Claude 維持原本 invocation。
 func (p executable) GenerateWithEffort(ctx context.Context, model, effort, prompt string) (string, error) {
 	args := p.args(model, prompt)
 	if p.name == "codex" {
@@ -34,7 +35,7 @@ func modelArgsWithEffort(prefix []string, model, effort, prompt string) []string
 		args = append(args, "--model", model)
 	}
 	if effort != "" {
-		args = append(args, "--effort", effort)
+		args = append(args, "--config", "model_reasoning_effort="+strconv.Quote(effort))
 	}
 	return append(args, prompt)
 }

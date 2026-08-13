@@ -175,7 +175,7 @@ func parseModelList(raw string) []Model {
 
 func parseModelLine(line string) Model {
 	if fields := strings.Fields(line); len(fields) > 1 && looksLikeModelID(fields[0]) {
-		return Model{ID: fields[0], DisplayName: strings.Join(fields[1:], " ")}
+		return Model{ID: fields[0], DisplayName: strings.Join(fields[1:], " "), ProviderValue: fields[0]}
 	}
 	return Model{ID: line}
 }

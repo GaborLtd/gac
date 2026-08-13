@@ -81,7 +81,7 @@ func (app *application) run(args []string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 	if *providerName != "" {
-		cfg.Provider = *providerName
+		switchProviderConfig(&cfg, *providerName)
 	}
 	if *modelName != "" {
 		cfg.Model = *modelName
@@ -224,6 +224,14 @@ func (app *application) run(args []string) error {
 	commitCtx, commitCancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer commitCancel()
 	return app.interactiveCommit(msg, generate, repo, commitNames, allTracked, commitCtx)
+}
+
+func switchProviderConfig(cfg *config.Config, providerName string) {
+	if cfg.Provider != providerName {
+		cfg.Model = ""
+		cfg.ReasoningEffort = ""
+	}
+	cfg.Provider = providerName
 }
 
 func generateWithEffort(ctx context.Context, p provider.Provider, model, effort, promptText string) (string, error) {
@@ -371,7 +379,7 @@ func (app *application) configure(args []string) error {
 		return errors.New("invalid provider selection")
 	}
 	selectedProvider := available[index-1]
-	cfg.Provider = selectedProvider.Name()
+	switchProviderConfig(&cfg, selectedProvider.Name())
 	modelCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	cfg.Model, cfg.ReasoningEffort, err = app.chooseModelFromCatalog(modelCtx, selectedProvider, cfg.Model, cfg.ReasoningEffort)
 	cancel()
@@ -468,7 +476,7 @@ func displayModelLabel(model provider.Model) string {
 
 func normalizeCurrentSelection(current, effort string, models []provider.Model) (string, string) {
 	value := normalizeCurrentModel(current, models)
-	if value == "" {
+	if value == "" && len(models) == 0 {
 		value = strings.TrimSpace(current)
 	}
 	if strings.TrimSpace(effort) == "" {
@@ -496,7 +504,7 @@ func normalizeCurrentModel(current string, models []provider.Model) string {
 			return model.Value()
 		}
 	}
-	return current
+	return ""
 }
 
 func modelCostRank(model string) int {
@@ -514,6 +522,9 @@ func modelCostRank(model string) int {
 }
 
 func modelCostHint(model string) string {
+	if strings.Contains(strings.ToLower(model), "low-cost") {
+		return ""
+	}
 	if modelCostRank(model) == 0 {
 		return " (low-cost recommendation)"
 	}

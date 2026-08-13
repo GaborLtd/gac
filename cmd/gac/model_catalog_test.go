@@ -25,11 +25,11 @@ func TestChooseModelFromCatalogUsesProviderValue(t *testing.T) {
 
 	var out bytes.Buffer
 	app := application{in: strings.NewReader("1\n"), out: &out, err: &bytes.Buffer{}}
-	got, effort, err := app.chooseModelFromCatalog(context.Background(), fakeModelProvider{}, "", "")
+	got, effort, err := app.chooseModelFromCatalog(context.Background(), fakeModelProvider{models: []provider.Model{{ID: "cheap-id", DisplayName: "Live Cheap", ProviderValue: "live-value"}}}, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "cheap-value" || effort != "low" {
+	if got != "live-value" || effort != "low" {
 		t.Fatalf("model = %q, want cheap-value", got)
 	}
 	if !strings.Contains(out.String(), "Recommended low-cost models") {

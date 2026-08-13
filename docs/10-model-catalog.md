@@ -29,8 +29,8 @@ catalog 使用 `schema_version`，每個 provider 保留少量、可互相替代
 - 不把 deprecated model 放入推薦清單。
 - 不在 catalog 放 API key、token 或使用者資料。
 - 更新後同時更新 `updated_at`、測試與 README 使用說明。
-- 若 provider CLI 能列出帳號模型，仍以 CLI 實際錯誤作最後判斷；catalog 只負責減少 onboarding 的猜測成本。
+- 若 provider CLI 能列出帳號模型，gac 會以 CLI 實際清單交叉比對 catalog，排除目前帳號不可用的推薦值；catalog 只負責減少 onboarding 的猜測成本。
 
-目前清單包含 `agy`、`codex` 與 `claude`。agy 提供 Flash Lite、Flash 的多個 Low 候選；Codex 提供 GPT-5.4 mini、GPT-5.4、GPT-5.5 與 GPT-5.6 Luna／Terra／Sol 的 Low effort 候選；Claude 目前只放入已確認的 Haiku 類低成本選項。這些值可能隨 provider 更新，請在 release 前重新確認。
+目前清單包含 `agy`、`codex` 與 `claude`。agy 提供目前 `agy models` 可查到的 Flash 與 Pro Low 候選；Codex 提供 GPT-5.4 mini、GPT-5.4、GPT-5.5 與 GPT-5.6 Luna／Terra／Sol 的 Low effort 候選；Claude 目前只放入已確認的 Haiku 類低成本選項。這些值可能隨 provider 更新，請在 release 前重新確認。
 
 最後更新：2026-08-13

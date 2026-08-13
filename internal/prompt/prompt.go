@@ -15,13 +15,13 @@ type Input struct {
 	Context  string
 }
 
-const defaultTemplate = `Generate one Conventional Commits message from the Git change below.
-Use {{.Language}}. Output only the commit message itself, with no explanation or code fence.
+const defaultTemplate = `Based on the following Git diff, write one commit message that follows the Conventional Commits format.
+Output only the message itself, without explanation or code fences. Write the message in {{.Language}}.
 
 === Changed files ===
 {{.Stat}}
 
-=== Diff ===
+=== Diff content ===
 {{.Diff}}
 
 === Additional context ===

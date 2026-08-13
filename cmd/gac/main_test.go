@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gaborltd/gac/internal/config"
 	"github.com/gaborltd/gac/internal/provider"
 )
 
@@ -133,6 +134,25 @@ func TestRunRejectsMultiplePaths(t *testing.T) {
 	err = app.run([]string{"--config", filepath.Join(t.TempDir(), "config.yaml"), "a.txt", "b.txt"})
 	if err == nil || !strings.Contains(err.Error(), "only one file path may be provided") {
 		t.Fatalf("expected multiple path error, got %v", err)
+	}
+}
+
+func TestChooseModelClearsUnknownCurrentModel(t *testing.T) {
+	app := application{in: strings.NewReader("\n"), out: &bytes.Buffer{}, err: &bytes.Buffer{}}
+	got, err := app.chooseModel(context.Background(), fakeModelProvider{models: []provider.Model{{ID: "gpt-5.4-mini", DisplayName: "GPT-5.4 mini"}}}, "Gemini 3.6 Flash Lite (Low)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "" {
+		t.Fatalf("stale model = %q, want empty", got)
+	}
+}
+
+func TestSwitchProviderClearsOldModelAndEffort(t *testing.T) {
+	cfg := config.Config{Provider: "agy", Model: "Gemini 3.6 Flash Lite (Low)", ReasoningEffort: "low"}
+	switchProviderConfig(&cfg, "codex")
+	if cfg.Model != "" || cfg.ReasoningEffort != "" || cfg.Provider != "codex" {
+		t.Fatalf("config after provider switch = %#v", cfg)
 	}
 }
 

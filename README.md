@@ -94,7 +94,7 @@ List detected providers:
 gac providers
 ~~~
 
-During gac config, gac loads a small catalog of multiple low-cost candidates for the selected provider. agy still queries `agy models` when available; Codex and Claude do not currently expose a reliable account-specific model list, so gac also shows the provider documentation URL and login hint. Each catalog entry keeps a provider-compatible value separate from its display label, and Codex candidates include `reasoning_effort: low` so short commit messages use the lowest-effort setting by default.
+During gac config, gac loads a small catalog of multiple low-cost candidates for the selected provider. agy queries `agy models` and filters catalog entries against the live account list when available; Codex and Claude do not currently expose a reliable account-specific model list, so gac also shows the provider documentation URL and login hint. Each catalog entry keeps a provider-compatible value separate from its display label, and Codex candidates include `reasoning_effort: low` so short commit messages use the lowest-effort setting by default; the adapter passes this through the current CLI-compatible `--config model_reasoning_effort="low"` override.
 
 If the provider needs authentication, gac suggests the provider login command. The catalog intentionally keeps several fallback candidates because model availability can change with provider accounts or CLI updates. For a short commit message, choose the cheapest model that is sufficient; gac does not claim to know exact provider pricing. gac does not silently retry another provider or model after a generation failure; choose another listed candidate explicitly to keep routing and cost visible.
 
@@ -128,10 +128,11 @@ diff_max_lines: 1000
 timeout_seconds: 120
 skip_ci_mode: ask
 prompt_template: |
-  Generate one Conventional Commits message in {{.Language}}.
+  Based on the following Git diff, write one commit message that follows the Conventional Commits format.
+  Output only the message itself, without explanation or code fences. Write the message in {{.Language}}.
   Changed files:
   {{.Stat}}
-  Diff:
+  Diff content:
   {{.Diff}}
   Additional context:
   {{.Context}}

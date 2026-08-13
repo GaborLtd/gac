@@ -34,7 +34,7 @@ func TestAgyInvocationNormalizesLegacyDisplayLabel(t *testing.T) {
 	if _, err := p.Generate(context.Background(), "gemini-3.6-flash-low\tGemini 3.6 Flash (Low)", "hello"); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"--model", "Gemini 3.6 Flash (Low)", "--print", "hello"}
+	want := []string{"--model", "gemini-3.6-flash-low", "--print", "hello"}
 	if !same(r.args, want) {
 		t.Fatalf("args %v, want %v", r.args, want)
 	}
@@ -45,7 +45,7 @@ func TestAgyListsModels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(models) != 2 || models[0].ID != "gemini-3.5-flash-low" || models[0].DisplayName != "Gemini 3.5 Flash (Low)" || models[1].ID != "gemini-3.5-flash-medium" || models[1].DisplayName != "Gemini 3.5 Flash (Medium)" {
+	if len(models) != 2 || models[0].ID != "gemini-3.5-flash-low" || models[0].DisplayName != "Gemini 3.5 Flash (Low)" || models[0].ProviderValue != "gemini-3.5-flash-low" || models[1].ID != "gemini-3.5-flash-medium" || models[1].DisplayName != "Gemini 3.5 Flash (Medium)" {
 		t.Fatalf("unexpected models: %v", models)
 	}
 	if !same(r.args, []string{"models"}) {
@@ -98,7 +98,7 @@ func TestCodexInvocationWithLowEffort(t *testing.T) {
 	if _, err := ep.GenerateWithEffort(context.Background(), "gpt-5.4-mini", "low", "p"); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"exec", "--model", "gpt-5.4-mini", "--effort", "low", "p"}
+	want := []string{"exec", "--model", "gpt-5.4-mini", "--config", "model_reasoning_effort=\"low\"", "p"}
 	if !same(r.args, want) {
 		t.Fatalf("args %v, want %v", r.args, want)
 	}

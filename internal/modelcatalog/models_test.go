@@ -15,7 +15,7 @@ func TestParseReturnsOnlyRecommendedModelsAndProviderValue(t *testing.T) {
 		t.Fatal(err)
 	}
 	models := catalog.Models("fake")
-	if len(models) != 1 || models[0].ID != "cheap-id" || models[0].DisplayName != "Cheap" || catalog.ResolveValue("fake", models[0].DisplayName) != "cheap-value" || models[0].ReasoningEffort != "low" {
+	if len(models) != 1 || models[0].ID != "cheap-id" || models[0].DisplayName != "Cheap" || catalog.ResolveValue("fake", models[0].DisplayName) != "cheap-value" || models[0].ReasoningEffort != "low" || models[0].ProviderValue != "cheap-value" {
 		t.Fatalf("models = %#v", models)
 	}
 }

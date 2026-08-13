@@ -8,39 +8,30 @@
       "login_hint": "run agy, complete browser sign-in, then retry",
       "models": [
         {
-          "id": "gemini-3.6-flash-lite-low",
-          "value": "Gemini 3.6 Flash Lite (Low)",
-          "display_name": "Gemini 3.6 Flash Lite (Low-cost recommendation)",
-          "cost_tier": "low",
-          "recommended": true,
-          "availability": "Verify with `agy models`",
-          "documentation": "https://www.antigravity.google/docs/cli-using"
-        },
-        {
           "id": "gemini-3.6-flash-low",
-          "value": "Gemini 3.6 Flash (Low)",
-          "display_name": "Gemini 3.6 Flash (Low-cost fallback)",
+          "value": "gemini-3.6-flash-low",
+          "display_name": "Gemini 3.6 Flash (Low)",
           "cost_tier": "low",
           "recommended": true,
-          "availability": "Verify with `agy models`",
-          "documentation": "https://www.antigravity.google/docs/cli-using"
-        },
-        {
-          "id": "gemini-3.5-flash-lite-low",
-          "value": "Gemini 3.5 Flash Lite (Low)",
-          "display_name": "Gemini 3.5 Flash Lite (Low-cost fallback)",
-          "cost_tier": "low",
-          "recommended": true,
-          "availability": "Verify with `agy models`",
+          "availability": "Verified with `agy models` on 2026-08-13; availability may vary",
           "documentation": "https://www.antigravity.google/docs/cli-using"
         },
         {
           "id": "gemini-3.5-flash-low",
-          "value": "Gemini 3.5 Flash (Low)",
-          "display_name": "Gemini 3.5 Flash (Low-cost fallback)",
+          "value": "gemini-3.5-flash-low",
+          "display_name": "Gemini 3.5 Flash (Low)",
           "cost_tier": "low",
           "recommended": true,
-          "availability": "Verify with `agy models`",
+          "availability": "Verified with `agy models` on 2026-08-13; availability may vary",
+          "documentation": "https://www.antigravity.google/docs/cli-using"
+        },
+        {
+          "id": "gemini-3.1-pro-low",
+          "value": "gemini-3.1-pro-low",
+          "display_name": "Gemini 3.1 Pro (Low)",
+          "cost_tier": "low",
+          "recommended": true,
+          "availability": "Verified with `agy models` on 2026-08-13; availability may vary",
           "documentation": "https://www.antigravity.google/docs/cli-using"
         }
       ]

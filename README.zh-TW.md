@@ -94,7 +94,7 @@ gac -n --provider agy --model low-cost-model
 gac providers
 ~~~
 
-執行 gac config 時，gac 會嘗試透過選定的 provider 列出 model。agy 會執行 agy models，將 model ID 與 display name 分開顯示，設定檔保存 provider 可接受的值（agy 使用 display name）；Codex 與 Claude 目前沒有可靠的 CLI 帳號可用 model 清單，因此 gac 會顯示 provider 文件 URL，使用者可以直接按 Enter 使用 provider 預設值，或自行輸入 model 名稱。
+執行 gac config 時，gac 會嘗試透過選定的 provider 列出 model。agy 會執行 agy models，將 model ID 與 display name 分開顯示，並排除帳號目前不存在的 catalog model，設定檔保存 provider 可接受的值（agy 使用 model ID）；Codex 與 Claude 目前沒有可靠的 CLI 帳號可用 model 清單，因此 gac 會顯示 provider 文件 URL，使用者可以直接按 Enter 使用 provider 預設值，或自行輸入 model 名稱。
 
 如果 provider 需要登入，gac 會提示對應的登入指令。catalog 刻意保留多個 fallback，因為 provider 帳號權限或 CLI 更新可能讓某個 model 暫時不可用。產生短 commit message 時，建議選擇足夠使用的最便宜 model；gac 不宣稱知道 provider 的精確價格。gac 不會在失敗後默默改送另一個 provider 或 model；這樣 routing 與成本保持可見，使用者可重新執行 `gac config` 選擇其他候選。
 
@@ -128,10 +128,11 @@ diff_max_lines: 1000
 timeout_seconds: 120
 skip_ci_mode: ask
 prompt_template: |
-  Generate one Conventional Commits message in {{.Language}}.
+  Based on the following Git diff, write one commit message that follows the Conventional Commits format.
+  Output only the message itself, without explanation or code fences. Write the message in {{.Language}}.
   Changed files:
   {{.Stat}}
-  Diff:
+  Diff content:
   {{.Diff}}
   Additional context:
   {{.Context}}
