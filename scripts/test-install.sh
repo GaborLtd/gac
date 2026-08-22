@@ -45,6 +45,17 @@ EOF
 chmod 0755 "$fakebin/uname" "$fakebin/curl"
 
 sh -n "$root/install.sh"
-PATH="$fakebin:$PATH" GAC_VERSION=1.0.0 GAC_INSTALL_DIR="$install_dir" sh "$root/install.sh"
+output="$tmp/output"
+test_path="$fakebin:/usr/bin:/bin:/usr/sbin:/sbin"
+PATH="$test_path" GAC_VERSION=1.0.0 GAC_INSTALL_DIR="$install_dir" sh "$root/install.sh" >"$output" 2>&1
 test -x "$install_dir/gac"
+grep -Fq "尚未偵測到 agy 或 codex CLI" "$output"
+
+printf '#!/bin/sh\nexit 0\n' > "$fakebin/agy"
+chmod 0755 "$fakebin/agy"
+PATH="$test_path" GAC_VERSION=1.0.0 GAC_INSTALL_DIR="$install_dir" sh "$root/install.sh" >"$output" 2>&1
+if grep -Fq "尚未偵測到 agy 或 codex CLI" "$output"; then
+  echo "installer unexpectedly prompted for a provider CLI" >&2
+  exit 1
+fi
 echo "installer test passed"

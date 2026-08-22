@@ -65,3 +65,26 @@ case ":${PATH}:" in
   *":${install_dir}:"*) ;;
   *) echo "請將 ${install_dir} 加入 PATH" >&2 ;;
 esac
+
+if ! command -v agy >/dev/null 2>&1 && ! command -v codex >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+
+尚未偵測到 agy 或 codex CLI。gac 需要其中一個 AI CLI 才能產生 commit message，請先安裝：
+
+agy（Antigravity CLI）
+  macOS / Linux: curl -fsSL https://antigravity.google/cli/install.sh | bash
+  Windows (PowerShell): irm https://antigravity.google/cli/install.ps1 | iex
+  Windows (CMD): curl -fsSL https://antigravity.google/cli/install.cmd -o install.cmd && install.cmd && del install.cmd
+
+codex（OpenAI Codex CLI）
+  macOS / Linux: curl -fsSL https://chatgpt.com/codex/install.sh | sh
+  Windows (PowerShell): powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"
+  npm: npm install -g @openai/codex
+  Homebrew: brew install --cask codex
+
+安裝後請重新開啟 terminal，或重新載入 PATH，再執行 gac。
+官方文件：
+  agy: https://antigravity.google/docs/cli/getting-started/
+  codex: https://github.com/openai/codex#quickstart
+EOF
+fi
